@@ -1,0 +1,8 @@
+[submodule "linked_ring"]
+	path = third_party/linked_ring
+	url = ../../fefa4ka/linked_ring.git
+	branch = master
+[submodule "eer"]
+	path = eer
+	url = ../../fefa4ka/eer.git
+	branch = master
