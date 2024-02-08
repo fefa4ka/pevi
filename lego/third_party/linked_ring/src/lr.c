@@ -4,22 +4,21 @@
 
 /**
  * Initialize a new linked ring buffer.
- * 
+ *
  * @param lr: pointer to the linked ring structure to be initialized
  * @param size: size of the buffer, in number of elements
  * @param cells: pointer to the array of cells that will make up the buffer
- * 
+ *
  * @return LR_OK: if the initialization was successful
  *         LR_ERROR_NOMEMORY: if the cells parameter is NULL or size is 0
  */
-lr_result_t lr_init(struct linked_ring *lr, size_t size,
-                    struct lr_cell *cells)
+lr_result_t lr_init(struct linked_ring *lr, size_t size, struct lr_cell *cells)
 {
     if (cells == NULL || size <= 0) {
         return LR_ERROR_NOMEMORY;
     }
 
-    lr->cells = cells;
+    lr->cells  = cells;
     lr->size   = size;
     lr->owners = NULL;
 
@@ -29,12 +28,13 @@ lr_result_t lr_init(struct linked_ring *lr, size_t size,
     /* Initialize the cells */
     /* Link the cells in a ring */
     for (size_t idx = 0; idx < lr->size - 1; ++idx) {
-        lr->cells[idx].next = &lr->cells[idx + 1];  /* Every cell points to the next */
+        lr->cells[idx].next
+            = &lr->cells[idx + 1]; /* Every cell points to the next */
     }
 
     /* Use lr_set_mutex to initialize these fields */
-    lr->lock = NULL;
-    lr->unlock = NULL;
+    lr->lock        = NULL;
+    lr->unlock      = NULL;
     lr->mutex_state = NULL;
 
     return LR_OK;
@@ -43,30 +43,34 @@ lr_result_t lr_init(struct linked_ring *lr, size_t size,
 #define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
 
 /* Lock the mutex if lock function provided, no op otherwise */
-#define lock(lr) do { \
-    if (lr->lock != NULL) { \
-        enum lr_result ret = lr->lock(lr->mutex_state); \
-        if (ret != LR_OK) { \
-            return ret; \
-        } \
-    } \
-} while (0)
+#define lock(lr)                                                               \
+    do {                                                                       \
+        if (lr->lock != NULL) {                                                \
+            enum lr_result ret = lr->lock(lr->mutex_state);                    \
+            if (ret != LR_OK) {                                                \
+                return ret;                                                    \
+            }                                                                  \
+        }                                                                      \
+    } while (0)
 
 /* Unlock the mutex if unlock function provided and then return ret  */
-#define unlock_and_return(lr, ret) do { \
-    if (lr->unlock != NULL) { \
-        return lr->unlock(lr->mutex_state); \
-    } \
-    return ret; \
-} while (0)
+#define unlock_and_return(lr, ret)                                             \
+    do {                                                                       \
+        if (lr->unlock != NULL) {                                              \
+            return lr->unlock(lr->mutex_state);                                \
+        }                                                                      \
+        return ret;                                                            \
+    } while (0)
 
 /* Additional overload for returning success */
 #define unlock_and_succeed(lr) unlock_and_return(lr, LR_OK)
 
 
-struct lr_cell* lr_owner_find(struct linked_ring *lr, lr_data_t owner) {
+struct lr_cell *lr_owner_find(struct linked_ring *lr, lr_data_t owner)
+{
     /* Traverse through each owner in the owner array */
-    for (struct lr_cell *owner_cell = lr->owners; owner_cell < lr->owners + lr_owners_count(lr); owner_cell++) {
+    for (struct lr_cell *owner_cell = lr->owners;
+         owner_cell < lr->owners + lr_owners_count(lr); owner_cell++) {
         /* Check if owner of the current cell matches with given owner */
         if (owner_cell->data == owner) {
             return owner_cell;
@@ -76,35 +80,39 @@ struct lr_cell* lr_owner_find(struct linked_ring *lr, lr_data_t owner) {
     return NULL;
 }
 
-struct lr_cell* lr_owner_head(struct linked_ring *lr, struct lr_cell *owner_cell) {
+struct lr_cell *lr_owner_head(struct linked_ring *lr,
+                              struct lr_cell     *owner_cell)
+{
     struct lr_cell *head;
     struct lr_cell *prev_owner;
 
-    if(owner_cell == lr_last_cell(lr)) {
-        /* If the provided owner is first, then last added owner is used 
-         * to link with owner_cell head 
+    if (owner_cell == lr_last_cell(lr)) {
+        /* If the provided owner is first, then last added owner is used
+         * to link with owner_cell head
          */
         head = lr->owners->next->next;
     } else {
         /* For any other cell, the prev owner is used for head linkage */
-        prev_owner = owner_cell + 1;  /* Owners stored in reverse oreder */
-        head = prev_owner->next->next;
+        prev_owner = owner_cell + 1; /* Owners stored in reverse oreder */
+        head       = prev_owner->next->next;
     }
-    
+
     return head;
 }
 
 #define lr_owner_tail(owner_cell) owner_cell->next;
 
 /**
- * Swap the provided cell with the cell at the write position in the linked ring buffer.
- * 
+ * Swap the provided cell with the cell at the write position in the linked ring
+ * buffer.
+ *
  * @param lr: pointer to the linked ring structure
  * @param cell: pointer to the cell to be swapped
- * 
+ *
  * @return pointer to the swapped cell
  */
-struct lr_cell* lr_cell_swap(struct linked_ring *lr, struct lr_cell *cell) {
+struct lr_cell *lr_cell_swap(struct linked_ring *lr, struct lr_cell *cell)
+{
     struct lr_cell *swap;
     struct lr_cell *last_free;
 
@@ -113,7 +121,7 @@ struct lr_cell* lr_cell_swap(struct linked_ring *lr, struct lr_cell *cell) {
 
     /* Update the write position to the next cell */
     if (swap->next) {
-        lr->write = swap->next; 
+        lr->write = swap->next;
     } else if (swap->next == NULL) {
         lr->write = NULL;
     }
@@ -122,8 +130,10 @@ struct lr_cell* lr_cell_swap(struct linked_ring *lr, struct lr_cell *cell) {
     swap->data = cell->data;
     swap->next = cell->next;
 
-    /* Update the next pointer of the owners pointing to the provided cell to point to the swap cell */
-    for (struct lr_cell *owner_swap = lr->owners; owner_swap < (lr->cells + lr->size); owner_swap++) {
+    /* Update the next pointer of the owners pointing to the provided cell to
+     * point to the swap cell */
+    for (struct lr_cell *owner_swap = lr->owners;
+         owner_swap < (lr->cells + lr->size); owner_swap++) {
         if (owner_swap->next == cell) {
             owner_swap->next = swap;
         }
@@ -134,27 +144,31 @@ struct lr_cell* lr_cell_swap(struct linked_ring *lr, struct lr_cell *cell) {
 
 
 /* Lookup a cell in the linked ring buffer starting from the provided head cell.
- * If the cell is found, it is swapped with the cell at the write position and the head cell is updated accordingly.
- * 
+ * If the cell is found, it is swapped with the cell at the write position and
+ * the head cell is updated accordingly.
+ *
  * @param lr: pointer to the linked ring structure
  * @param head: pointer to the head cell from where the lookup should start
  * @param cell: pointer to the cell to be looked up
- * 
+ *
  * @return pointer to the looked up cell if found, NULL otherwise
  */
-struct lr_cell* lr_cell_lookup(struct linked_ring *lr, struct lr_cell *head, struct lr_cell *cell) {
+struct lr_cell *lr_cell_lookup(struct linked_ring *lr, struct lr_cell *head,
+                               struct lr_cell *cell)
+{
     struct lr_cell *swap;
     struct lr_cell *needle;
 
     /* Traverse through the linked ring buffer starting from the head cell */
     needle = head;
-    while(needle->next != head && needle->next != cell) {
+    while (needle->next != head && needle->next != cell) {
         needle = needle->next;
     }
 
-    /* If the cell is found, swap it with the cell at the write position and update the head cell */
-    if(needle->next == cell) {
-        swap = lr_cell_swap(lr, cell);
+    /* If the cell is found, swap it with the cell at the write position and
+     * update the head cell */
+    if (needle->next == cell) {
+        swap         = lr_cell_swap(lr, cell);
         needle->next = swap;
 
         return cell;
@@ -163,44 +177,49 @@ struct lr_cell* lr_cell_lookup(struct linked_ring *lr, struct lr_cell *head, str
     return NULL;
 }
 
-struct lr_cell* lr_owner_allocate(struct linked_ring *lr) {
+struct lr_cell *lr_owner_allocate(struct linked_ring *lr)
+{
     struct lr_cell *owner_cell;
     struct lr_cell *needle;
     struct lr_cell *head;
-    size_t owners_nr; 
+    size_t          owners_nr;
 
     /* Calculate the number of owners in the linked ring buffer */
-    owners_nr = lr_owners_count(lr); 
+    owners_nr = lr_owners_count(lr);
 
     /* Allocate the owner cell at the appropriate position in the cells array */
     owner_cell = &lr->cells[lr->size - owners_nr - 1];
 
-    /* If the owners array is not empty, check if the owner cell already exists */
-    if(lr->owners) {
-        /* Look up the owner cell starting from the next cell of the owners array */
+    /* If the owners array is not empty, check if the owner cell already exists
+     */
+    if (lr->owners) {
+        /* Look up the owner cell starting from the next cell of the owners
+         * array */
         needle = lr_cell_lookup(lr, lr->owners->next, owner_cell);
 
         /* If the owner cell is found, return it */
-        if(needle)
+        if (needle)
             return needle;
     }
-    
-    /* If the owner cell is the same as the write position, update the write position */
-    if(owner_cell == lr->write) {
+
+    /* If the owner cell is the same as the write position, update the write
+     * position */
+    if (owner_cell == lr->write) {
         lr->write = lr->write->next;
 
         return owner_cell;
-    } 
+    }
 
-    /* If the owner cell is not found in the linked ring buffer, lookup in the free pool */
-    head = lr->write;
+    /* If the owner cell is not found in the linked ring buffer, lookup in the
+     * free pool */
+    head   = lr->write;
     needle = head;
-    while(needle->next != head && needle->next != owner_cell) {
+    while (needle->next != head && needle->next != owner_cell) {
         needle = needle->next;
     }
 
     /* If the owner cell is found, update the next pointer to skip it */
-    if(needle->next == owner_cell) {
+    if (needle->next == owner_cell) {
         needle->next = needle->next->next;
 
         return owner_cell;
@@ -209,21 +228,22 @@ struct lr_cell* lr_owner_allocate(struct linked_ring *lr) {
     return NULL;
 }
 
-struct lr_cell* lr_owner_get(struct linked_ring *lr, lr_data_t owner) {
+struct lr_cell *lr_owner_get(struct linked_ring *lr, lr_data_t owner)
+{
     struct lr_cell *owner_cell = NULL;
 
     /* Find the owner cell in the linked ring buffer */
     owner_cell = lr_owner_find(lr, owner);
-    if(owner_cell)
+    if (owner_cell)
         return owner_cell;
 
     /* If the write position is not empty, allocate a new owner cell */
-    if(!lr->write->next) 
+    if (!lr->write->next)
         return NULL;
 
     /* Allocate a new owner cell and update the owners array */
-    owner_cell = lr_owner_allocate(lr);
-    lr->owners = owner_cell;
+    owner_cell       = lr_owner_allocate(lr);
+    lr->owners       = owner_cell;
     owner_cell->data = owner;
     owner_cell->next = NULL;
 
@@ -232,19 +252,21 @@ struct lr_cell* lr_owner_get(struct linked_ring *lr, lr_data_t owner) {
 
 
 /**
- * Count the number of elements owned by the specified owner in the linked ring buffer.
- * If limit is specified, it will stop counting after reaching the limit.
- * 
+ * Count the number of elements owned by the specified owner in the linked ring
+ * buffer. If limit is specified, it will stop counting after reaching the
+ * limit.
+ *
  * @param lr: pointer to the linked ring structure
  * @param limit: maximum number of elements to count (0 for no limit)
  * @param owner: the owner of the elements to count (0 for all owners)
- * 
- * @return the number of elements owned by the specified owner (up to the limit, if specified)
+ *
+ * @return the number of elements owned by the specified owner (up to the limit,
+ * if specified)
  */
 size_t lr_count_limited_owned(struct linked_ring *lr, size_t limit,
-                                lr_owner_t owner)
+                              lr_owner_t owner)
 {
-    size_t length;
+    size_t          length;
     struct lr_cell *head;
     struct lr_cell *needle;
     struct lr_cell *tail;
@@ -253,18 +275,18 @@ size_t lr_count_limited_owned(struct linked_ring *lr, size_t limit,
 
     lock(lr);
 
-    length = 0;
+    length     = 0;
     owner_cell = lr_owner_find(lr, owner);
-    if(owner_cell == NULL) {
+    if (owner_cell == NULL) {
         unlock_and_return(lr, length);
     }
 
-    head = lr_owner_head(lr, owner_cell); 
+    head = lr_owner_head(lr, owner_cell);
     tail = lr_owner_tail(owner_cell);
 
     needle = head;
     length = 1;
-    while(needle != tail) {
+    while (needle != tail) {
         needle = needle->next;
         length += 1;
     }
@@ -274,27 +296,28 @@ size_t lr_count_limited_owned(struct linked_ring *lr, size_t limit,
 
 /**
  * Count the number of elements in the linked ring buffer.
- * 
+ *
  * @param lr: pointer to the linked ring structure
- * 
+ *
  * @return the number of elements in the buffer
  */
-size_t lr_count(struct linked_ring *lr) {
+size_t lr_count(struct linked_ring *lr)
+{
     struct lr_cell *head;
     struct lr_cell *needle;
-    size_t length;
+    size_t          length;
 
     lock(lr);
 
     length = 0;
-    if(lr->owners == NULL) {
+    if (lr->owners == NULL) {
         unlock_and_return(lr, length);
     }
 
-    head = lr->owners->next;
+    head   = lr->owners->next;
     length = 1;
     needle = head;
-    while(needle->next != head) {
+    while (needle->next != head) {
         needle = needle->next;
         length += 1;
     }
@@ -305,26 +328,27 @@ size_t lr_count(struct linked_ring *lr) {
 
 /**
  * Set the mutex for a linked ring buffer.
- * 
+ *
  * @param lr: pointer to the linked ring structure to be initialized
  * @param attr: mutex attributes
  */
 void lr_set_mutex(struct linked_ring *lr, struct lr_mutex_attr *attr)
 {
-    lr->lock = attr->lock;
-    lr->unlock = attr->unlock;
+    lr->lock        = attr->lock;
+    lr->unlock      = attr->unlock;
     lr->mutex_state = attr->state;
 }
 
 /**
  * Add a new element to the linked ring buffer.
- * 
+ *
  * @param lr: pointer to the linked ring structure
  * @param data: the data to be added to the buffer
  * @param owner: the owner of the new element
- * 
+ *
  * @return LR_OK: if the element was successfully added
- *         LR_ERROR_BUFFER_FULL: if the buffer is full and the element could not be added
+ *         LR_ERROR_BUFFER_FULL: if the buffer is full and the element could not
+ * be added
  */
 lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_data_t owner)
 {
@@ -337,32 +361,32 @@ lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_data_t owner)
 
     lock(lr);
 
-    if(lr->write == NULL) {
+    if (lr->write == NULL) {
         unlock_and_return(lr, LR_ERROR_BUFFER_FULL);
     }
 
     owner_cell = lr_owner_get(lr, owner);
-    if(owner_cell == NULL) {
+    if (owner_cell == NULL) {
         unlock_and_return(lr, LR_ERROR_BUFFER_FULL);
     }
     tail = lr_owner_tail(owner_cell);
 
-    cell = lr->write;
+    cell      = lr->write;
     lr->write = lr->write->next;
 
     cell->data = data;
 
-    if(tail) {
+    if (tail) {
         /* If owner allready exists*/
         cell->next = tail->next;
         tail->next = cell;
     } else {
         /* If new owner */
-        if(owner_cell < lr_last_cell(lr)) {
+        if (owner_cell < lr_last_cell(lr)) {
             /* If prev owner exists */
-            prev_owner = owner_cell + 1;        
-            chain = prev_owner->next->next;
-            cell->next = chain;
+            prev_owner             = owner_cell + 1;
+            chain                  = prev_owner->next->next;
+            cell->next             = chain;
             prev_owner->next->next = cell;
         } else {
             /* If first owner */
@@ -377,16 +401,17 @@ lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_data_t owner)
 
 /**
  * Add a new string element to the linked ring buffer.
- * 
+ *
  * @param lr: pointer to the linked ring structure
  * @param data: the string to be added to the buffer
  * @param owner: the owner of the new element
- * 
+ *
  * @return LR_OK: if the element was successfully added
- *         LR_ERROR_BUFFER_FULL: if the buffer is full and the element could not be added
+ *         LR_ERROR_BUFFER_FULL: if the buffer is full and the element could not
+ * be added
  */
 lr_result_t lr_put_string(struct linked_ring *lr, unsigned char *data,
-                           lr_owner_t owner)
+                          lr_owner_t owner)
 {
     /* Loop through each character in the string */
     while (*data) {
@@ -413,37 +438,36 @@ lr_result_t lr_read_string(struct linked_ring *lr, unsigned char *data,
     lock(lr);
 
     owner_cell = lr_owner_find(lr, owner);
-    if(owner_cell == NULL) {
+    if (owner_cell == NULL) {
         return LR_ERROR_BUFFER_EMPTY;
     }
 
     last_cell = lr_last_cell(lr);
-    if(owner_cell == last_cell) {
-        prev_owner = lr->owners;        
+    if (owner_cell == last_cell) {
+        prev_owner = lr->owners;
     } else {
-        prev_owner = owner_cell + 1;        
+        prev_owner = owner_cell + 1;
     }
-    head = prev_owner->next->next;
-    tail = lr_owner_tail(owner_cell);
+    head   = prev_owner->next->next;
+    tail   = lr_owner_tail(owner_cell);
     needle = head;
-	do {
-		*data++ = needle->data;
-		needle = needle->next;
-		printf("%c ", *(data - 1));
-	} while(needle != tail->next);
-	*data = '\0';
-
+    do {
+        *data++ = needle->data;
+        needle  = needle->next;
+    } while (needle != tail->next);
+    *data = '\0';
 }
 
 /**
  * Retrieve the next element from the linked ring buffer.
- * 
+ *
  * @param lr: pointer to the linked ring structure
  * @param data: pointer to the variable where the retrieved data will be stored
  * @param owner: the owner of the retrieved element
- * 
+ *
  * @return LR_OK: if the element was successfully retrieved
- *         LR_ERROR_BUFFER_EMPTY: if the buffer is empty and no element could be retrieved
+ *         LR_ERROR_BUFFER_EMPTY: if the buffer is empty and no element could be
+ * retrieved
  */
 lr_result_t lr_get(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
 {
@@ -456,33 +480,34 @@ lr_result_t lr_get(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     lock(lr);
 
     owner_cell = lr_owner_find(lr, owner);
-    if(owner_cell == NULL) {
+    if (owner_cell == NULL) {
         return LR_ERROR_BUFFER_EMPTY;
     }
 
     last_cell = lr_last_cell(lr);
-    if(owner_cell == last_cell) {
-        prev_owner = lr->owners;        
+    if (owner_cell == last_cell) {
+        prev_owner = lr->owners;
     } else {
-        prev_owner = owner_cell + 1;        
+        prev_owner = owner_cell + 1;
     }
-    head = prev_owner->next->next;
+    head                   = prev_owner->next->next;
     prev_owner->next->next = head->next;
 
     *data = head->data;
-    tail = lr_owner_tail(owner_cell);
-    if(head == tail) {
+    tail  = lr_owner_tail(owner_cell);
+    if (head == tail) {
         /* If last cell for owner */
         /* delete and shorten the list, put a new link to lr->owners */
-        for(struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners; owner_swap--) {
+        for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
+             owner_swap--) {
             struct lr_cell *next_owner = owner_swap - 1;
-            *owner_swap = *next_owner;
+            *owner_swap                = *next_owner;
         }
 
         lr->owners->next = lr->write;
-        lr->write = lr->owners;
+        lr->write        = lr->owners;
 
-        if(lr->owners == last_cell) {
+        if (lr->owners == last_cell) {
             lr->owners = NULL;
         } else {
             lr->owners += 1;
@@ -490,7 +515,7 @@ lr_result_t lr_get(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     }
 
     head->next = lr->write;
-    lr->write = head;
+    lr->write  = head;
 
     unlock_and_return(lr, LR_OK);
 }
@@ -507,31 +532,32 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     lock(lr);
 
     owner_cell = lr_owner_find(lr, owner);
-    if(owner_cell == NULL) {
+    if (owner_cell == NULL) {
         return LR_ERROR_BUFFER_EMPTY;
     }
 
     last_cell = lr_last_cell(lr);
-    if(owner_cell == last_cell) {
-        prev_owner = lr->owners;        
+    if (owner_cell == last_cell) {
+        prev_owner = lr->owners;
     } else {
-        prev_owner = owner_cell + 1;        
+        prev_owner = owner_cell + 1;
     }
-    head = prev_owner->next->next;
-    tail = lr_owner_tail(owner_cell);
+    head  = prev_owner->next->next;
+    tail  = lr_owner_tail(owner_cell);
     *data = tail->data;
-    if(head == tail) {
+    if (head == tail) {
         /* If last cell for owner */
         /* delete and shorten the list, put a new link to lr->owners */
-        for(struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners; owner_swap--) {
+        for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
+             owner_swap--) {
             struct lr_cell *next_owner = owner_swap - 1;
-            *owner_swap = *next_owner;
+            *owner_swap                = *next_owner;
         }
 
         lr->owners->next = lr->write;
-        lr->write = lr->owners;
+        lr->write        = lr->owners;
 
-        if(lr->owners == last_cell) {
+        if (lr->owners == last_cell) {
             lr->owners = NULL;
         } else {
             lr->owners += 1;
@@ -540,23 +566,24 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
 
 
     needle = head;
-	do {
-		if(needle->next == tail) {
-			owner_cell->next = needle;	
-			needle->next = tail->next;
-			needle = tail;
-		} else {
-			needle = needle->next;
-		}
-	} while(needle != tail->next);
+    do {
+        if (needle->next == tail) {
+            owner_cell->next = needle;
+            needle->next     = tail->next;
+            needle           = tail;
+        } else {
+            needle = needle->next;
+        }
+    } while (needle != tail->next);
 
     tail->next = lr->write;
-    lr->write = tail;
+    lr->write  = tail;
 
     unlock_and_return(lr, LR_OK);
 }
 
-lr_result_t lr_print(struct linked_ring *lr) {
+lr_result_t lr_print(struct linked_ring *lr)
+{
     struct lr_cell *head;
     struct lr_cell *needle;
     struct lr_cell *tail;
@@ -564,19 +591,20 @@ lr_result_t lr_print(struct linked_ring *lr) {
 
     lock(lr);
 
-    if(lr->owners == NULL) {
+    if (lr->owners == NULL) {
         printf("No owners found\n");
         unlock_and_return(lr, LR_ERROR_BUFFER_EMPTY);
     }
 
-    for(owner_cell = lr_last_cell(lr); owner_cell >= lr->owners; owner_cell--) {
+    for (owner_cell = lr_last_cell(lr); owner_cell >= lr->owners;
+         owner_cell--) {
         printf("Owner: %lu\n", owner_cell->data);
-        head = lr_owner_head(lr, owner_cell); 
+        head = lr_owner_head(lr, owner_cell);
         tail = lr_owner_tail(owner_cell);
 
         needle = head;
         printf("| ");
-        while(needle != tail) {
+        while (needle != tail) {
             printf("%lu | ", needle->data);
             needle = needle->next;
         }
@@ -594,7 +622,7 @@ lr_result_t lr_dump(struct linked_ring *lr)
 
     lock(lr);
     head = NULL;
-    if(lr->owners) {
+    if (lr->owners) {
         head = lr->owners->next->next;
     }
 
@@ -609,7 +637,7 @@ lr_result_t lr_dump(struct linked_ring *lr)
     printf("owners  : %ld\n", lr_owners_count(lr));
     printf("\n");
 
-   if (lr_count(lr) == 0) {
+    if (lr_count(lr) == 0) {
         unlock_and_return(lr, LR_ERROR_BUFFER_EMPTY);
     }
 

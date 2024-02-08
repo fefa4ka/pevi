@@ -3,7 +3,8 @@
 #include <math.h>
 #include <rlgl.h>
 
-static Vector3 symbol_measure(Font font, char *symbol, float fontSize, float fontSpacing, float lineSpacing);
+static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
+                              float fontSpacing, float lineSpacing);
 
 ///
 /// \brief
@@ -13,10 +14,7 @@ WILL_MOUNT(Symbol) {}
 ///
 /// \brief
 ///
-SHOULD_UPDATE(Symbol)
-{
-    return true;
-}
+SHOULD_UPDATE(Symbol) { return true; }
 
 ///
 /// \brief
@@ -26,12 +24,13 @@ WILL_UPDATE(Symbol)
     Font *font  = &props->font;
     float scale = props->font_size / (float)props->font.baseSize;
 
-//    if(props->content != next_props->content || !state->glyph) {
-	    int codepointByteCount = 0;
-	    int codepoint          = GetCodepoint(props->content, &codepointByteCount);
-	    state->glyph           = GetGlyphIndex(props->font, codepoint);
-	    state->size            = symbol_measure(props->font, props->content, props->font_size, 1.0f, 0.0f);
-//	}
+    //    if(props->content != next_props->content || !state->glyph) {
+    int codepointByteCount = 0;
+    int codepoint          = GetCodepoint(props->content, &codepointByteCount);
+    state->glyph           = GetGlyphIndex(props->font, codepoint);
+    state->size = symbol_measure(props->font, props->content, props->font_size,
+                                 1.0f, 0.0f);
+    //	}
 
     // Character index position in sprite font
     // NOTE: In case a codepoint is not available in the font, index returned
@@ -40,17 +39,21 @@ WILL_UPDATE(Symbol)
     // Character destination rectangle on screen
     // NOTE: We consider charsPadding on drawing
     state->pos.y = props->pos.y;
-    state->pos.x = props->pos.x + (float)(font->glyphs[state->glyph].offsetX - font->glyphPadding)
-                   / (float)font->baseSize * scale;
-    state->pos.z = props->pos.z + (float)(font->glyphs[state->glyph].offsetY - font->glyphPadding)
-                    / (float)font->baseSize * scale;
-
+    state->pos.x
+        = props->pos.x
+          + (float)(font->glyphs[state->glyph].offsetX - font->glyphPadding)
+                / (float)font->baseSize * scale;
+    state->pos.z
+        = props->pos.z
+          + (float)(font->glyphs[state->glyph].offsetY - font->glyphPadding)
+                / (float)font->baseSize * scale;
 }
 
 ///
 /// \brief
 ///
-RELEASE(Symbol) {
+RELEASE(Symbol)
+{
     Font *font  = &props->font;
     int   index = state->glyph;
     float scale = props->font_size / (float)props->font.baseSize;
@@ -78,10 +81,6 @@ RELEASE(Symbol) {
         const float ty = srcRec.y / font->texture.height;
         const float tw = (srcRec.x + srcRec.width) / font->texture.width;
         const float th = (srcRec.y + srcRec.height) / font->texture.height;
-
-        //		if (SHOW_LETTER_BOUNDRY) DrawCubeWiresV((Vector3){
-        // position.x + width/2, position.y, position.z + height/2}, (Vector3){
-        // width, LETTER_BOUNDRY_SIZE, height }, LETTER_BOUNDRY_COLOR);
 
         rlCheckRenderBatchLimit(4 + 4 * props->backface);
         rlSetTexture(font->texture.id);
@@ -129,32 +128,37 @@ DID_MOUNT_SKIP(Symbol);
 DID_UPDATE_SKIP(Symbol);
 
 
-// Measure a text in 3D. For some reason `MeasureTextEx()` just doesn't seem to work so i had to use this instead.
-static Vector3 symbol_measure(Font font, char *symbol, float fontSize, float fontSpacing, float lineSpacing)
+// Measure a text in 3D. For some reason `MeasureTextEx()` just doesn't seem to
+// work so i had to use this instead.
+static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
+                              float fontSpacing, float lineSpacing)
 {
-	float tempTextWidth = 0.0f;     // Used to count longer text line width
+    float tempTextWidth = 0.0f; // Used to count longer text line width
 
-	float scale = fontSize/(float)font.baseSize;
-	float textHeight = 1;//scale;
-	float textWidth = 0.0f;
+    float scale      = fontSize / (float)font.baseSize;
+    float textHeight = 1; // scale;
+    float textWidth  = 0.0f;
 
-	int letter = 0;                 // Current character
-	int index = 0;                  // Index position in sprite font
-
+    int letter = 0; // Current character
+    int index  = 0; // Index position in sprite font
 
 
     int codepointByteCount = 0;
-		letter = GetCodepoint(symbol, &codepointByteCount);
-		index = GetGlyphIndex(font, letter);
+    letter                 = GetCodepoint(symbol, &codepointByteCount);
+    index                  = GetGlyphIndex(font, letter);
 
 
-			if (font.glyphs[index].advanceX != 0) textWidth += (font.glyphs[index].advanceX+fontSpacing)/(float)font.baseSize*scale;
-			else textWidth += (font.recs[index].width + font.glyphs[index].offsetX)/(float)font.baseSize*scale;
+    if (font.glyphs[index].advanceX != 0)
+        textWidth += (font.glyphs[index].advanceX + fontSpacing)
+                     / (float)font.baseSize * scale;
+    else
+        textWidth += (font.recs[index].width + font.glyphs[index].offsetX)
+                     / (float)font.baseSize * scale;
 
-		Vector3 vec = { 0 };
-	vec.x = textWidth; // Adds chars spacing to measure
-	vec.y = 0.25f;
-	vec.z = textHeight;
+    Vector3 vec = {0};
+    vec.x       = textWidth; // Adds chars spacing to measure
+    vec.y       = 0.25f;
+    vec.z       = textHeight;
 
-	return vec;
+    return vec;
 }
