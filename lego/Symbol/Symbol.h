@@ -13,7 +13,9 @@ typedef struct {
     float   font_size;
     bool backface;
     Vector3 pos;
+    Vector3 absolute_pos;
     bool is_selected;
+    Camera *camera;
 } Symbol_props_t;
 
 typedef struct {

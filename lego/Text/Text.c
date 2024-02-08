@@ -51,20 +51,25 @@ RELEASE(Text)
 
     eer_init(dot);
     for (int index = 0; index < TextLength(props->content); index++) {
-	if (props->content[index] != '\n')
+	if (props->content[index] == '\n')
         {
+
+		state->pos.z += dot.state.size.z;
+	    state->pos.x = -1 * state->size.x / 2.0f + props->pos.x;
+	} else if(props->content[index] == '\t') {
+	    state->pos.x += props->spacing * 2;
+	} else{
         react(Symbol, dot,
               _({.font      = props->font,
                  .tint      = props->tint,
                  .content   = &props->content[index],
                  .font_size = props->font_size,
-                 .pos       = state->pos}));
+                 .pos       = state->pos,
+		 .absolute_pos = props->absolute_pos,
+		 .camera = props->camera}));
 
 
         state->pos.x += dot.state.size.x + props->spacing;
-        } else {
-		state->pos.z += dot.state.size.z;
-    state->pos.x = -1 * state->size.x / 2.0f + props->pos.x;
 
 	}
     }

@@ -64,6 +64,9 @@ int main(void)
 {
     lr_result_t result = lr_init(&lr, BUFFER_SIZE, cells);
 
+//    Font fnt = LoadFontEx("FiraCode-Regular.ttf", 96, 0, 0);
+    Font fnt = GetFontDefault();
+
     ignite(clk, win, cam);
 
     // Get char pressed (unicode character) on the queue
@@ -91,9 +94,15 @@ int main(void)
             int len = TextLength(text);
             if (len < sizeof(text) - 1)
             {
-                text[len] = '\n';
-
                 lr_put(&lr, (char)'\n', lr_owner(current_cursor_index));
+            }
+        } else if (IsKeyPressed(KEY_TAB))
+        {
+            // handle newline
+            int len = TextLength(text);
+            if (len < sizeof(text) - 1)
+            {
+                lr_put(&lr, (char)'\t', lr_owner(current_cursor_index));
             }
         }
     }
@@ -144,15 +153,15 @@ int main(void)
                       0); // Rotate around X-axis (pitch)
 
 
-            Font fnt = GetFontDefault();
-
             react(Text, txt,
                   _({.font      = GetFontDefault(),
-			  .spacing = 1.0f,
+			  .spacing = 0.6f,
                      .tint      = BLACK,
                      .content   = text,
-                     .font_size = 18.0f,
-                     .pos       = text_pos}));
+                     .font_size =18.0f,
+                     .pos       = text_pos,
+		     .absolute_pos = text_poss,
+		     .camera = &cam.state.camera}));
 
             if (edit_mode
                 && (size_t)current_cursor_index == (size_t)owner_cell->data) {

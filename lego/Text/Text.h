@@ -13,6 +13,8 @@ typedef struct {
     float   font_size;
     float   spacing;
     Vector3 pos;
+    Vector3 absolute_pos;
+    Camera *camera;
 } Text_props_t;
 
 typedef struct {

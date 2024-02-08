@@ -16,7 +16,7 @@ WILL_MOUNT(Symbol) {}
 ///
 SHOULD_UPDATE(Symbol)
 {
-    Font *font  = &next_props->font;
+    Font *font   = &next_props->font;
     state->scale = next_props->font_size / (float)next_props->font.baseSize;
 
     if (!next_props->content)
@@ -40,7 +40,7 @@ SHOULD_UPDATE(Symbol)
 ///
 WILL_UPDATE(Symbol)
 {
-    Font *font  = &next_props->font;
+    Font *font = &next_props->font;
 
     //	}
 
@@ -137,7 +137,26 @@ RELEASE(Symbol)
         rlSetTexture(0);
     }
 
-    if (props->is_selected) {
+    Ray          ray       = {0}; // Picking line ray
+    RayCollision collision = {0}; // Ray collision hit info
+    ray                    = GetMouseRay(GetMousePosition(), *props->camera);
+
+
+    // Check collision between ray and box
+    collision = GetRayCollisionBox(
+        ray,
+        (BoundingBox){
+            (Vector3){props->absolute_pos.x + state->pos.x - state->size.x / 2,
+                      props->absolute_pos.y + state->pos.y - state->size.y / 2,
+                      props->absolute_pos.z + state->pos.z - state->size.z / 2},
+            (Vector3){props->absolute_pos.x + state->pos.x + state->size.x,
+                      props->absolute_pos.y + state->pos.y + state->size.y ,
+                      props->absolute_pos.z + state->pos.z
+                          + state->size.z}
+
+			  });
+
+    if (collision.hit || props->is_selected) {
         DrawCubeWiresV((Vector3){state->pos.x + state->size.x / 2, state->pos.y,
                                  state->pos.z + state->size.z / 2},
                        state->size, RED);
