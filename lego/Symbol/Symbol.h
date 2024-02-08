@@ -13,6 +13,7 @@ typedef struct {
     float   font_size;
     bool backface;
     Vector3 pos;
+    bool is_selected;
 } Symbol_props_t;
 
 typedef struct {
@@ -20,6 +21,7 @@ typedef struct {
 	int glyph;
     Vector3 pos;
     Vector3 size;
+    float scale;
 } Symbol_state_t;
 
 eer_header(Symbol);

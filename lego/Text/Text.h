@@ -7,8 +7,11 @@
 #define Text(instance, props) eer_withprops(Text, instance, _(props))
 
 typedef struct {
+    Font font;
+    Color tint;
     char   *content;
     float   font_size;
+    float   spacing;
     Vector3 pos;
 } Text_props_t;
 

@@ -15,7 +15,7 @@ Clock(clk, &hw(timer), TIMESTAMP);
 Window(win, _({"pevi", 800, 400}));
 Camera_add(cam, _({(Vector3){10.0f, 0.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f},
                    (Vector3){0.0f, 1.0f, 0.0f}, 45.0f, CAMERA_PERSPECTIVE,
-                   CAMERA_THIRD_PERSON}));
+                   CAMERA_FREE}));
 Text_new(txt);
 Symbol_new(dot);
 
@@ -39,8 +39,8 @@ float    cursor_angle[BUFFER_SIZE];
 
 #define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
 // Function to calculate angles to rotate object towards camera
-Vector2 CalculateBillboardAnglesYP(Vector3 objectPosition,
-                                   Vector3 cameraPosition, Vector3 cameraUp)
+Vector2 CalculateBillboardAngles(Vector3 objectPosition, Vector3 cameraPosition,
+                                 Vector3 cameraUp)
 {
     Vector3 direction
         = Vector3Normalize(Vector3Subtract(cameraPosition, objectPosition));
@@ -70,17 +70,6 @@ int main(void)
     int       key = GetCharPressed();
     lr_data_t data;
 
-    // Check if more characters have been pressed on the same frame
-    if (key == 'i') {
-        edit_mode                         = true;
-        cursor_position[cursor_index]     = cam.state.camera.target;
-        cursor_cam_position[cursor_index] = cam.state.camera.position;
-        cursor_cam_up[cursor_index]       = cam.state.camera.up;
-        current_cursor                    = &cursor_position[cursor_index];
-        current_cursor_index              = cursor_index;
-        cursor_index += 1;
-    }
-
     if (edit_mode) {
         while (key > 0) {
             // NOTE: Only allow keys in range [32..125]
@@ -93,16 +82,41 @@ int main(void)
 
         if (IsKeyPressed(KEY_BACKSPACE)) {
             lr_pop(&lr, &data, lr_owner(current_cursor_index));
-        }
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            edit_mode = false;
+        }else if (IsKeyPressed(KEY_ESCAPE)) {
+            edit_mode            = false;
+            cam.props.is_movable = true;
+        }else if (IsKeyPressed(KEY_ENTER))
+        {
+            // handle newline
+            int len = TextLength(text);
+            if (len < sizeof(text) - 1)
+            {
+                text[len] = '\n';
+
+                lr_put(&lr, (char)'\n', lr_owner(current_cursor_index));
+            }
         }
     }
 
+    // Check if more characters have been pressed on the same frame
+    if (!edit_mode && key == 'i') {
+        edit_mode                         = true;
+        cam.props.is_movable              = false;
+        cursor_position[cursor_index]     = cam.state.camera.target;
+        cursor_cam_position[cursor_index] = cam.state.camera.position;
+        cursor_cam_up[cursor_index]       = cam.state.camera.up;
+        current_cursor                    = &cursor_position[cursor_index];
+        current_cursor_index              = cursor_index;
+        cursor_index += 1;
+    }
+
+
     ClearBackground(RAYWHITE);
-    DrawGrid(100, 1.0f);
-    DrawCube(cam.state.camera.target, 1.0f, 0.25f, 1.f, PURPLE);
-    DrawCubeWires(cam.state.camera.target, 1.0f, 0.25f, 1.0f, DARKPURPLE);
+    //    DrawGrid(100, 1.0f);
+    if (!edit_mode) {
+        DrawCube(cam.state.camera.target, 1.0f, 0.25f, 1.f, PURPLE);
+        DrawCubeWires(cam.state.camera.target, 1.0f, 0.25f, 1.0f, DARKPURPLE);
+    }
 
 
     if (lr.owners != NULL) {
@@ -120,7 +134,7 @@ int main(void)
             Vector3 text_pos  = {0};
 
             Vector2 angles
-                = CalculateBillboardAnglesYP(text_poss, cam_pos, cam_up);
+                = CalculateBillboardAngles(text_poss, cam_pos, cam_up);
 
             rlTranslatef(text_poss.x, text_poss.y, text_poss.z);
 
@@ -132,15 +146,19 @@ int main(void)
 
             Font fnt = GetFontDefault();
 
-            for (int index = 0; index < TextLength(text); index++) {
-                react(Symbol, dot,
-                      _({.font      = GetFontDefault(),
-                         .tint      = RED,
-                         .content   = &text[index],
-                         .font_size = 18.0f,
-                         .pos       = text_pos}));
+            react(Text, txt,
+                  _({.font      = GetFontDefault(),
+			  .spacing = 1.0f,
+                     .tint      = BLACK,
+                     .content   = text,
+                     .font_size = 18.0f,
+                     .pos       = text_pos}));
 
-                text_pos.x += dot.state.size.x + 1.0f;
+            if (edit_mode
+                && (size_t)current_cursor_index == (size_t)owner_cell->data) {
+		    txt.state.pos.z += 1.f;
+                DrawCube(txt.state.pos, 1.0f, 0.25f, 1.f, PURPLE);
+                DrawCubeWires(txt.state.pos, 1.0f, 0.25f, 1.0f, DARKPURPLE);
             }
 
             rlPopMatrix();

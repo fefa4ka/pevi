@@ -14,22 +14,34 @@ WILL_MOUNT(Symbol) {}
 ///
 /// \brief
 ///
-SHOULD_UPDATE(Symbol) { return true; }
+SHOULD_UPDATE(Symbol)
+{
+    Font *font  = &next_props->font;
+    state->scale = next_props->font_size / (float)next_props->font.baseSize;
+
+    if (!next_props->content)
+        return false;
+
+    //    if(props->content != next_props->content || !state->glyph) {
+    int codepointByteCount = 0;
+    int codepoint = GetCodepoint(next_props->content, &codepointByteCount);
+    state->glyph  = GetGlyphIndex(next_props->font, codepoint);
+    state->size   = symbol_measure(next_props->font, next_props->content,
+                                   next_props->font_size, 1.0f, 0.0f);
+
+    if (state->glyph)
+        return true;
+
+    return false;
+}
 
 ///
 /// \brief
 ///
 WILL_UPDATE(Symbol)
 {
-    Font *font  = &props->font;
-    float scale = props->font_size / (float)props->font.baseSize;
+    Font *font  = &next_props->font;
 
-    //    if(props->content != next_props->content || !state->glyph) {
-    int codepointByteCount = 0;
-    int codepoint          = GetCodepoint(props->content, &codepointByteCount);
-    state->glyph           = GetGlyphIndex(props->font, codepoint);
-    state->size = symbol_measure(props->font, props->content, props->font_size,
-                                 1.0f, 0.0f);
     //	}
 
     // Character index position in sprite font
@@ -38,15 +50,15 @@ WILL_UPDATE(Symbol)
 
     // Character destination rectangle on screen
     // NOTE: We consider charsPadding on drawing
-    state->pos.y = props->pos.y;
+    state->pos.y = next_props->pos.y;
     state->pos.x
-        = props->pos.x
+        = next_props->pos.x
           + (float)(font->glyphs[state->glyph].offsetX - font->glyphPadding)
-                / (float)font->baseSize * scale;
+                / (float)font->baseSize * state->scale;
     state->pos.z
-        = props->pos.z
+        = next_props->pos.z
           + (float)(font->glyphs[state->glyph].offsetY - font->glyphPadding)
-                / (float)font->baseSize * scale;
+                / (float)font->baseSize * state->scale;
 }
 
 ///
@@ -56,19 +68,21 @@ RELEASE(Symbol)
 {
     Font *font  = &props->font;
     int   index = state->glyph;
-    float scale = props->font_size / (float)props->font.baseSize;
     // Character source rectangle from font texture atlas
     // NOTE: We consider chars padding when drawing, it could be required for
     // outline/glow shader effects
+    if (!state->glyph) {
+        return;
+    }
     Rectangle srcRec = {font->recs[index].x - (float)font->glyphPadding,
                         font->recs[index].y - (float)font->glyphPadding,
                         font->recs[index].width + 2.0f * font->glyphPadding,
                         font->recs[index].height + 2.0f * font->glyphPadding};
 
     float width = (float)(font->recs[index].width + 2.0f * font->glyphPadding)
-                  / (float)font->baseSize * scale;
+                  / (float)font->baseSize * state->scale;
     float height = (float)(font->recs[index].height + 2.0f * font->glyphPadding)
-                   / (float)font->baseSize * scale;
+                   / (float)font->baseSize * state->scale;
 
     if (font->texture.id > 0) {
         const float x = 0.0f;
@@ -122,6 +136,12 @@ RELEASE(Symbol)
 
         rlSetTexture(0);
     }
+
+    if (props->is_selected) {
+        DrawCubeWiresV((Vector3){state->pos.x + state->size.x / 2, state->pos.y,
+                                 state->pos.z + state->size.z / 2},
+                       state->size, RED);
+    }
 }
 
 DID_MOUNT_SKIP(Symbol);
@@ -158,7 +178,7 @@ static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
     Vector3 vec = {0};
     vec.x       = textWidth; // Adds chars spacing to measure
     vec.y       = 0.25f;
-    vec.z       = textHeight;
+    vec.z       = textHeight * 2;
 
     return vec;
 }

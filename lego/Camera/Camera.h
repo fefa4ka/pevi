@@ -13,6 +13,7 @@ typedef struct {
     float fovy;
     int projection;
     int mode;
+    bool is_movable;
 } Camera_props_t;
 
 typedef struct {
