@@ -7,8 +7,9 @@ project(eeReactLego VERSION 1.0
 set(EER_PATH "/eer")
 include(eer/options.cmake)
 
-add_subdirectory(third_party/linked_ring)
 add_subdirectory(eer)
+
+add_subdirectory(third_party/linked_ring)
 
 # Abstract
 add_subdirectory(Clock)

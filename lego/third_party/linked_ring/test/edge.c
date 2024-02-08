@@ -22,9 +22,9 @@
         log_ok(message, ##__VA_ARGS__);                                        \
     }
 
-#define BUFFER_SIZE 4
+#define BUFFER_SIZE 10
 struct linked_ring buffer; // declare a buffer for the Linked Ring
-                           //
+                           
 // define enum for owners
 // owners have input and ouput stream
 typedef enum {
@@ -52,6 +52,8 @@ lr_result_t init_buffer(int buffer_size)
 
     return LR_OK;
 }
+
+
 
 lr_result_t add_random_data()
 {
@@ -92,13 +94,14 @@ lr_result_t get_random_owner_data()
 lr_result_t test_multiple_owners()
 {
     // initialize the buffer
+    unsigned int count;
     unsigned int ages   = 0;
     lr_result_t  result = init_buffer(BUFFER_SIZE);
     test_assert(result == LR_OK, "Initialize buffer");
 
     do {
         unsigned int current_size = lr_count(&buffer);
-        unsigned int remain = BUFFER_SIZE - current_size;
+        unsigned int remain = lr_available(&buffer);
         if (remain && rand() & 1) {
             for (int i = 0; i <= rand() % remain; ++i) {
                 add_random_data();

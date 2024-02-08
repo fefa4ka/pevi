@@ -21,7 +21,6 @@ SHOULD_UPDATE_SKIP(Window);
 ///
 WILL_UPDATE(Window)
 {
-    BeginDrawing();
 }
 
 ///
@@ -29,10 +28,12 @@ WILL_UPDATE(Window)
 ///
 RELEASE(Window)
 {
-
+    BeginDrawing();
 }
 
-DID_MOUNT_SKIP(Window);
+DID_MOUNT(Window) {
+	EndDrawing();
+}
 DID_UPDATE(Window)
 {
 	EndDrawing();

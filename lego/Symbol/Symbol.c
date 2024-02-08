@@ -4,6 +4,7 @@
 #include <rlgl.h>
 
 static Vector3 symbol_measure(Font font, char *symbol, float fontSize, float fontSpacing, float lineSpacing);
+
 ///
 /// \brief
 ///
@@ -14,10 +15,6 @@ WILL_MOUNT(Symbol) {}
 ///
 SHOULD_UPDATE(Symbol)
 {
-    int codepointByteCount = 0;
-    int codepoint          = GetCodepoint(props->content, &codepointByteCount);
-    state->glyph           = GetGlyphIndex(props->font, codepoint);
-    state->size = symbol_measure(props->font, props->content, props->font_size, 1.0f, 0.0f);
     return true;
 }
 
@@ -26,21 +23,37 @@ SHOULD_UPDATE(Symbol)
 ///
 WILL_UPDATE(Symbol)
 {
+    Font *font  = &props->font;
+    float scale = props->font_size / (float)props->font.baseSize;
+
+//    if(props->content != next_props->content || !state->glyph) {
+	    int codepointByteCount = 0;
+	    int codepoint          = GetCodepoint(props->content, &codepointByteCount);
+	    state->glyph           = GetGlyphIndex(props->font, codepoint);
+	    state->size            = symbol_measure(props->font, props->content, props->font_size, 1.0f, 0.0f);
+//	}
+
     // Character index position in sprite font
     // NOTE: In case a codepoint is not available in the font, index returned
     // points to '?'
-    int   index = state->glyph;
-    float scale = props->font_size / (float)props->font.baseSize;
-    Font *font  = &props->font;
 
     // Character destination rectangle on screen
     // NOTE: We consider charsPadding on drawing
     state->pos.y = props->pos.y;
-    state->pos.x = props->pos.x + (float)(font->glyphs[index].offsetX - font->glyphPadding)
+    state->pos.x = props->pos.x + (float)(font->glyphs[state->glyph].offsetX - font->glyphPadding)
                    / (float)font->baseSize * scale;
-    state->pos.z = props->pos.z + (float)(font->glyphs[index].offsetY - font->glyphPadding)
+    state->pos.z = props->pos.z + (float)(font->glyphs[state->glyph].offsetY - font->glyphPadding)
                     / (float)font->baseSize * scale;
 
+}
+
+///
+/// \brief
+///
+RELEASE(Symbol) {
+    Font *font  = &props->font;
+    int   index = state->glyph;
+    float scale = props->font_size / (float)props->font.baseSize;
     // Character source rectangle from font texture atlas
     // NOTE: We consider chars padding when drawing, it could be required for
     // outline/glow shader effects
@@ -111,11 +124,6 @@ WILL_UPDATE(Symbol)
         rlSetTexture(0);
     }
 }
-
-///
-/// \brief
-///
-RELEASE(Symbol) {}
 
 DID_MOUNT_SKIP(Symbol);
 DID_UPDATE_SKIP(Symbol);
