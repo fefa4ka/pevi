@@ -2,6 +2,7 @@
 
 #include <eer.h>
 #include <raylib.h>
+#include <lr.h>
 
 #define Text_new(instance)    eer(Text, instance)
 #define Text(instance, props) eer_withprops(Text, instance, _(props))
@@ -9,12 +10,20 @@
 typedef struct {
     Font font;
     Color tint;
+    Color bg_color;
     char   *content;
+    lr_owner_t owner;
     float   font_size;
     float   spacing;
+    float   line_spacing;
     Vector3 pos;
     Vector3 absolute_pos;
     Camera *camera;
+    bool is_selected;
+    struct {
+        void (*hover)(eer_t *instance);
+        void (*click)(eer_t *instance);
+    } on;
 } Text_props_t;
 
 typedef struct {

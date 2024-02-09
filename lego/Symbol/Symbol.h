@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eer.h>
+#include <lr.h>
 #include <raylib.h>
 
 #define Symbol_new(instance)    eer(Symbol, instance)
@@ -10,12 +11,18 @@ typedef struct {
     Font font;
     Color tint;
     char    *content;
+    lr_owner_t owner;
+    size_t content_index;
     float   font_size;
     bool backface;
     Vector3 pos;
     Vector3 absolute_pos;
     bool is_selected;
     Camera *camera;
+    struct {
+        void (*hover)(eer_t *instance);
+        void (*click)(eer_t *instance);
+    } on;
 } Symbol_props_t;
 
 typedef struct {

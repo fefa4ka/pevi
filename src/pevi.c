@@ -35,6 +35,7 @@ size_t   current_cursor_index = 0;
 Vector3 *current_cursor;
 Vector3  cursor_initial = (Vector3){0.0f, 0.0f, 0.0f};
 Vector2  cursor_screen[BUFFER_SIZE];
+Color cursor_color[BUFFER_SIZE];
 float    cursor_angle[BUFFER_SIZE];
 
 #define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
@@ -57,8 +58,47 @@ Vector2 CalculateBillboardAngles(Vector3 objectPosition, Vector3 cameraPosition,
     float pitch = asinf(direction.y);
 
     return (Vector2){yaw, pitch};
+
 }
 
+// Generates a nice color with a random hue
+static Color GenerateRandomColor(float s, float v)
+{
+    const float Phi = 0.618033988749895f; // Golden ratio conjugate
+    float       h   = (float)GetRandomValue(0, 360);
+    h               = fmodf((h + h * Phi), 360.0f);
+    return ColorFromHSV(h, s, v);
+}
+
+Vector3 CalculateCameraPositionFromBillboard(Vector3 playerPosition, Vector2 billboardAngles, Vector3 cameraUp, float distance) {
+    // Calculate the direction vector from player to billboard
+    Vector3 direction;
+    direction.x = sinf(billboardAngles.x) * cosf(billboardAngles.y);
+    direction.y = sinf(billboardAngles.y);
+    direction.z = cosf(billboardAngles.x) * cosf(billboardAngles.y);
+
+    // Calculate the right vector based on camera up vector
+    Vector3 right = Vector3CrossProduct(cameraUp, direction);
+
+    // Calculate the camera position
+    Vector3 cameraPosition;
+    cameraPosition.x = playerPosition.x + direction.x * distance;
+    cameraPosition.y = playerPosition.y + direction.y * distance;
+    cameraPosition.z = playerPosition.z + direction.z * distance;
+
+    return cameraPosition;
+}
+
+bool current_symbol;
+size_t current_symbol_owner;
+size_t current_symbol_index;
+void on_dot_hover(eer_t *symbol) {
+	eer_self(Symbol, symbol);
+	current_symbol = true;
+	current_symbol_owner = (size_t)self->props.owner;
+	current_symbol_index= (size_t)self->props.content_index;
+	printf("hover %c - %ld\n", *self->props.content, (size_t)self->props.owner);
+}
 
 int main(void)
 {
@@ -69,11 +109,13 @@ int main(void)
 
     ignite(clk, win, cam);
 
+
     // Get char pressed (unicode character) on the queue
     int       key = GetCharPressed();
     lr_data_t data;
 
     if (edit_mode) {
+	    
         while (key > 0) {
             // NOTE: Only allow keys in range [32..125]
             if ((key >= 32) && (key <= 125)) {
@@ -88,6 +130,7 @@ int main(void)
         }else if (IsKeyPressed(KEY_ESCAPE)) {
             edit_mode            = false;
             cam.props.is_movable = true;
+current_symbol= 0;
         }else if (IsKeyPressed(KEY_ENTER))
         {
             // handle newline
@@ -111,14 +154,33 @@ int main(void)
     if (!edit_mode && key == 'i') {
         edit_mode                         = true;
         cam.props.is_movable              = false;
-        cursor_position[cursor_index]     = cam.state.camera.target;
-        cursor_cam_position[cursor_index] = cam.state.camera.position;
-        cursor_cam_up[cursor_index]       = cam.state.camera.up;
-        current_cursor                    = &cursor_position[cursor_index];
-        current_cursor_index              = cursor_index;
-        cursor_index += 1;
-    }
+	if(current_symbol) {
+		current_cursor_index = current_symbol_owner;
+   Vector3 text_pos = cursor_position[current_cursor_index];
+            Vector3 cam_pos   = cursor_cam_position[current_cursor_index];
+            Vector3 cam_up    = cursor_cam_up[current_cursor_index];
 
+            Vector2 angles
+                = CalculateBillboardAngles(text_pos, cam_pos, cam_up);
+
+ 		cam.state.camera.position = cam_pos;
+ 		cam.state.camera.up = cam_up;
+ 		cam.state.camera.target= text_pos;
+
+	} else {
+		cursor_position[cursor_index]     = cam.state.camera.target;
+		cursor_cam_position[cursor_index] = cam.state.camera.position;
+		cursor_cam_up[cursor_index]       = cam.state.camera.up;
+		current_cursor                    = &cursor_position[cursor_index];
+		current_cursor_index              = cursor_index;
+float saturation = 0.1f; // High saturation for vivid colors
+float value = 0.8f;      // High value for bright colors
+Color randomColor = GenerateRandomColor(saturation, value);
+cursor_color[cursor_index] = randomColor;
+		cursor_index += 1;
+	}
+    }
+current_symbol = false;
 
     ClearBackground(RAYWHITE);
     //    DrawGrid(100, 1.0f);
@@ -140,6 +202,7 @@ int main(void)
             Vector3 text_poss = cursor_position[(size_t)owner_cell->data];
             Vector3 cam_pos   = cursor_cam_position[(size_t)owner_cell->data];
             Vector3 cam_up    = cursor_cam_up[(size_t)owner_cell->data];
+            Color bg_color = cursor_color[(size_t)owner_cell->data];
             Vector3 text_pos  = {0};
 
             Vector2 angles
@@ -158,10 +221,13 @@ int main(void)
 			  .spacing = 0.6f,
                      .tint      = BLACK,
                      .content   = text,
-                     .font_size =18.0f,
+		     .owner = owner_cell->data,
+                     .font_size =12.0f,
                      .pos       = text_pos,
 		     .absolute_pos = text_poss,
-		     .camera = &cam.state.camera}));
+		     .camera = &cam.state.camera,
+		     .bg_color= bg_color,
+		     .on ={ .hover= on_dot_hover}}));
 
             if (edit_mode
                 && (size_t)current_cursor_index == (size_t)owner_cell->data) {

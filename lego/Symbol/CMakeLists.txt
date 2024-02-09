@@ -21,6 +21,7 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
+set(LIBS lr)
 include(../component.cmake)
 
 target_link_libraries(${PROJECT_NAME} raylib)

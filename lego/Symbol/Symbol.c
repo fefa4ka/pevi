@@ -146,7 +146,7 @@ RELEASE(Symbol)
     collision = GetRayCollisionBox(
         ray,
         (BoundingBox){
-            (Vector3){props->absolute_pos.x + state->pos.x - state->size.x / 2,
+            (Vector3){props->absolute_pos.x + state->pos.x,
                       props->absolute_pos.y + state->pos.y - state->size.y / 2,
                       props->absolute_pos.z + state->pos.z - state->size.z / 2},
             (Vector3){props->absolute_pos.x + state->pos.x + state->size.x,
@@ -155,6 +155,7 @@ RELEASE(Symbol)
                           + state->size.z}
 
 			  });
+    if(collision.hit && props->on.hover) props->on.hover(self);
 
     if (collision.hit || props->is_selected) {
         DrawCubeWiresV((Vector3){state->pos.x + state->size.x / 2, state->pos.y,
@@ -175,7 +176,7 @@ static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
     float tempTextWidth = 0.0f; // Used to count longer text line width
 
     float scale      = fontSize / (float)font.baseSize;
-    float textHeight = 1; // scale;
+    float textHeight =  scale;
     float textWidth  = 0.0f;
 
     int letter = 0; // Current character
@@ -191,13 +192,13 @@ static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
         textWidth += (font.glyphs[index].advanceX + fontSpacing)
                      / (float)font.baseSize * scale;
     else
-        textWidth += (font.recs[index].width + font.glyphs[index].offsetX)
+        textWidth += (font.recs[index].width + fontSpacing + font.glyphs[index].offsetX)
                      / (float)font.baseSize * scale;
 
     Vector3 vec = {0};
     vec.x       = textWidth; // Adds chars spacing to measure
     vec.y       = 0.25f;
-    vec.z       = textHeight * 2;
+    vec.z       = textHeight;
 
     return vec;
 }
