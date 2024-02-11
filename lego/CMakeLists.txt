@@ -13,6 +13,7 @@ add_subdirectory(third_party/linked_ring)
 
 # Abstract
 add_subdirectory(Clock)
+add_subdirectory(Serial)
 add_subdirectory(Scheduler)
 add_subdirectory(Menu)
 

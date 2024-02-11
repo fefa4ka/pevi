@@ -10,6 +10,12 @@ typedef struct {
     char   *title;
     unsigned int width;
     unsigned int height;
+    Camera *camera;
+
+    struct {
+        void (*before)(eer_t *instance);
+        void (*after)(eer_t *instance);
+    } on;
 } Window_props_t;
 
 typedef struct {

@@ -49,13 +49,19 @@ SHOULD_UPDATE(Camera)
 ///
 /// \brief
 ///
-WILL_UPDATE(Camera) { BeginMode3D(state->camera); }
+WILL_UPDATE(Camera) {
+
+
+	BeginMode3D(state->camera); }
 
 ///
 /// \brief
 ///
-RELEASE(Camera) {}
+RELEASE(Camera) {
+
+}
 
 DID_MOUNT_SKIP(Camera);
-DID_UPDATE(Camera) { EndMode3D(); }
+DID_UPDATE(Camera) { 
+ }
 

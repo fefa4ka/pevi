@@ -54,6 +54,7 @@ RELEASE(Text)
         DrawCubeV((Vector3){state->pos.x + state->size.x / 2, state->pos.y - 0.15,
                                  state->pos.z + state->size.z / 2},
                        state->size, props->bg_color);
+
     eer_init(dot);
     for (int index = 0; index < TextLength(props->content); index++) {
 	if (props->content[index] == '\n')

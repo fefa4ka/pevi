@@ -3,7 +3,7 @@ project(pevi VERSION 1.0
     LANGUAGES C ASM)
 
 
-set(LIBS Clock Window Camera Symbol Text lr)
+set(LIBS Clock Serial Window Camera Symbol Text Menu lr)
 set(HAL_LIBS timer)
 
 include(../app.cmake)
