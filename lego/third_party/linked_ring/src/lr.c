@@ -498,11 +498,14 @@ lr_result_t lr_get(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     if (head == tail) {
         /* If last cell for owner */
         /* delete and shorten the list, put a new link to lr->owners */
-        for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
-             owner_swap--) {
-            struct lr_cell *next_owner = owner_swap - 1;
-            *owner_swap                = *next_owner;
-        }
+	owner_cell->data = 0;
+	if(owner_cell != lr->owners) {
+		for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
+		     owner_swap--) {
+		    struct lr_cell *next_owner = owner_swap - 1;
+		    *owner_swap                = *next_owner;
+		}
+	}
 
         lr->owners->next = lr->write;
         lr->write        = lr->owners;

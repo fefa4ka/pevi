@@ -13,6 +13,8 @@
 #include <rlgl.h>
 #include <string.h>
 
+void
+shell() ;
 
 void on_shortcut(eer_t *menu);
 
@@ -40,7 +42,7 @@ void render_start(eer_t *win) {
 bool is_fps_visible = true;
 void render_end(eer_t *win) ;
 
-Window(win, _({"pevi", 800, 400, &cam.state.camera,  
+Window(win, _({"pevi", 1024, 900, &cam.state.camera,  
 		   .on = { .before = render_start, .after= render_end}}));
 Text_new(txt);
 Symbol_new(dot);
@@ -50,27 +52,35 @@ void print_fps(void *arg) {
 
 bool command_mode = false;
 void enable_edit_mode(void *arg);
+void enable_execute_mode(void *arg);
 void enable_command_mode(void *arg) {
 command_mode = true;
+        cam.props.is_movable              = false;
 }
 
+void set_fovy(void *fovy);
 Menu_command_t commands[] = {{"fps", print_fps},
+{"fovy", set_fovy, command},
                              {0}};
 
 Menu_command_t shortcuts[] = {{":", enable_command_mode},
 				{"i", enable_edit_mode},
+				{"e", enable_execute_mode},
                              {0}};
 
 void on_command(eer_t *menu)
 {
     *command = 0;
     command_mode = false;
+        cam.props.is_movable              = true;
 }
 
 void on_command_not_found(eer_t *menu)
 {
     *command = 0;
     command_mode = false;
+
+        cam.props.is_movable              = true;
 }
 
 Menu(tty, _({.menu    = commands,
@@ -186,6 +196,11 @@ if (IsKeyPressed(KEY_ENTER)) {
 	key_pressed= '\r';
 	return true;
 }
+
+        if (IsKeyPressed(KEY_BACKSPACE)) {
+		key_pressed = 0;
+		return true;
+	}
 key_pressed = GetCharPressed();
 if(key_pressed) {
     return true;
@@ -237,11 +252,17 @@ void render_end(eer_t *win) {
 	 if(command_mode) {
     DrawText(key_buffer,  10, GetScreenHeight() - 20, 10, GRAY);
 	 }
+
+	shell();
 }
 void on_shortcut(eer_t *menu)
 {
     lr_data_t data;
     while (Serial_read(&input, &data) == OK && data) {
+    }
+    int r= lr_read_string(&command_buffer, key_buffer, lr_owner(eer_prop(Serial, &input, handler)->receive));
+    if(r!= OK) {
+	    key_buffer[0] = '\0';
     }
 }
 
@@ -250,14 +271,21 @@ void on_shortcut_not_found(eer_t *menu)
     lr_data_t data;
     while (Serial_read(&input, &data) == OK && data) {
     }
+    int r= lr_read_string(&command_buffer, key_buffer, lr_owner(eer_prop(Serial, &input, handler)->receive));
+    if(r!= OK) {
+	    key_buffer[0] = '\0';
+    }
 }
 
 /**
  * \brief    Echo each symbol from input to output
  */
-void read_symbol(eer_t *uart_ptr)
-{
-
+void read_symbol(eer_t *uart_ptr) {
+if(eer_state(Serial, &input, sending) == 0){
+	int data;
+	    lr_pop(&command_buffer, &data, lr_owner(eer_prop(Serial, &input, handler)->receive));
+            lr_pop(&command_buffer, &data, lr_owner(eer_prop(Serial, &input, handler)->receive));
+	    }
     lr_read_string(&command_buffer, key_buffer, lr_owner(eer_prop(Serial, &input, handler)->receive));
 
 }
@@ -276,6 +304,8 @@ void read_command(eer_t *uart)
 }
 
 /* UART communication */
+
+
 
 
 void enable_edit_mode(void *args){
@@ -308,6 +338,40 @@ cursor_color[cursor_index] = randomColor;
 	}
 
 }
+void run_shell(char *command) {
+  FILE *fp;
+  char path[1035];
+
+  /* Open the command for reading. */
+  fp = popen(command, "r");
+  if (fp == NULL) {
+
+	lr_put(&lr, (char)'\n', lr_owner(current_cursor_index));
+
+	lr_put_string(&lr, "Failed to run command\n", lr_owner(current_cursor_index));
+  }
+
+  /* Read the output a line at a time - output it. */
+  while (fgets(path, sizeof(path), fp) != NULL) {
+	lr_put_string(&lr, path, lr_owner(current_cursor_index));
+  }
+
+  /* close */
+  pclose(fp);
+            cam.props.is_movable = true;
+  edit_mode = false;
+}
+
+void enable_execute_mode(void *args){
+	if(current_symbol) {
+	    char command[COMMAND_BUFFER_SIZE];
+		current_cursor_index = current_symbol_owner;
+
+		    lr_read_string(&lr, command, lr_owner(current_cursor_index));
+		    run_shell(command);
+	}
+}
+
 /* Application */
 void edit_mode_process() {
 	int key;
@@ -336,8 +400,11 @@ current_symbol= 0;
             int len = TextLength(text);
             if (len < sizeof(text) - 1)
             {
+		    char command[COMMAND_BUFFER_SIZE];
+		    lr_read_string(&lr, command, lr_owner(current_cursor_index));
                 lr_put(&lr, (char)'\n', lr_owner(current_cursor_index));
-            }
+		//    run_shell(command);
+	    }
         } else if (IsKeyPressed(KEY_TAB))
         {
             // handle newline
@@ -348,6 +415,15 @@ current_symbol= 0;
             }
         }
 }
+
+void set_fovy(void *fovy_str)
+{
+    int fovy;
+    sscanf(fovy_str, "%*s %d", &fovy);
+    cam.state.camera.fovy = fovy;
+}
+
+
 
 void
 shell() {
@@ -372,7 +448,6 @@ int main(void)
 
     ignite(clk, win, cam);
 
-    shell();
 
  
 current_symbol = false;

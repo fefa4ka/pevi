@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include <raymath.h>
 #include <eers.h>
 
 
@@ -22,27 +23,28 @@ WILL_MOUNT(Camera)
 SHOULD_UPDATE(Camera)
 {
     Vector3 movement = {0};
+    if(props->is_movable) {
 
+ float distance_factor = Vector3Distance(state->camera.position, state->camera.target);
+        float speed_factor = 0.01f + 0.003f * distance_factor; // Adjust the coefficients as needed
 
-    if (props->is_movable)
         movement = (Vector3){
-            (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) * 0.01f
+            (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) * speed_factor
                 - // Move forward-backward
-                (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) * 0.01f,
-            (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) * 0.01f
+                (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) * speed_factor,
+            (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) * speed_factor
                 - // Move right-left
-                (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) * 0.01f,
+                (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) * speed_factor,
             0.0f // Move up-down
-        };
-
-    UpdateCameraPro(&state->camera, movement,
+        };    
+    }
+	UpdateCameraPro(&state->camera, movement,
                     (Vector3){
                         GetMouseDelta().x * 0.2f, // Rotation: yaw
                         GetMouseDelta().y * 0.2f, // Rotation: pitch
                         0.0f                      // Rotation: roll
                     },
                     GetMouseWheelMove() * 2.0f); // Move to target (zoom)
-
     return true;
 }
 

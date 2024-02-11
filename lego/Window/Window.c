@@ -29,6 +29,7 @@ WILL_UPDATE(Window)
 RELEASE(Window)
 {
     BeginDrawing();
+
 	if(props->on.before)  props->on.before(self);
 }
 
@@ -38,6 +39,7 @@ DID_MOUNT(Window) {EndMode3D();
 }
 DID_UPDATE(Window)
 {
+
 	if(props->on.after)  props->on.after(self);
 	EndDrawing();
 }	
