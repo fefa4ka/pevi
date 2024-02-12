@@ -2,7 +2,7 @@ project(pevi VERSION 1.0
     DESCRIPTION "eer text editor"
     LANGUAGES C ASM)
 
-
+set(SOURCES input.c pemath.c cmd.c)
 set(LIBS Clock Serial Window Camera Symbol Text Menu lr)
 set(HAL_LIBS timer)
 

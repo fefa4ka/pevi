@@ -1,0 +1,6 @@
+#pragma once
+
+#define WINDOW_WIDTH 1024
+#define WINDOW_HEIGHT 768
+
+#define COMMAND_BUFFER_SIZE 1024

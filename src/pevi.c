@@ -1,71 +1,42 @@
-#include <Camera.h>
-#include <Clock.h>
-#include <Menu.h>
-#include <Serial.h>
-#include <Symbol.h>
-#include <Text.h>
-#include <Window.h>
-#include <eer_app.h>
-#include <lr.h>
-#include <raylib.h>
-#include <raymath.h>
-#include <rcamera.h>
-#include <rlgl.h>
-#include <string.h>
+
+#include "pevi.h"
+
+struct Pevi state;
 
 void shell();
 
-void on_shortcut(eer_t *menu);
-
-void on_shortcut_not_found(eer_t *menu);
 #define BUFFER_SIZE 1000
 struct lr_cell     cells[BUFFER_SIZE];
 struct linked_ring lr;
 
-struct lr_cell     command_cells[BUFFER_SIZE] = {0};
-struct linked_ring command_buffer             = {command_cells, BUFFER_SIZE};
-
-#define COMMAND_BUFFER_SIZE 1024
-char command[COMMAND_BUFFER_SIZE];
-char key_buffer[COMMAND_BUFFER_SIZE];
 Clock(clk, &hw(timer), TIMESTAMP);
-Camera_add(cam, _({(Vector3){10.0f, 0.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f},
-                   (Vector3){0.0f, 1.0f, 0.0f}, 45.0f, CAMERA_PERSPECTIVE,
-                   CAMERA_FREE}));
+Camera_new(cam);
 
 void render_start(eer_t *win)
 {
     //	BeginMode3D(cam.state.camera); // WHY THIS DON'T WORK?
 }
 
-bool is_fps_visible = true;
 void render_end(eer_t *win);
 
-Window(win, _({"pevi", 1024, 900, &cam.state.camera,
+Window(win, _({"pevi", WINDOW_WIDTH, WINDOW_HEIGHT, &cam.state.camera,
                .on = {.before = render_start, .after = render_end}}));
 Text_new(txt);
 Symbol_new(dot);
-void print_fps(void *arg) { is_fps_visible = !is_fps_visible; }
 
-bool command_mode = false;
-void enable_edit_mode(void *arg);
-void enable_execute_mode(void *arg);
-void enable_drag_mode(void *arg);
-void enable_command_mode(void *arg)
+void quit(void *command)
 {
-    command_mode         = true;
-    cam.props.is_movable = false;
+    CloseWindow();
+    exit(0);
 }
 
-void set_fovy(void *fovy);
-void buffer_save(void *command);
-void plane_open(void *command);
 
 void           buffer_dump(void *command) { lr_dump(&lr); }
 Menu_command_t commands[] = {{"fps", print_fps},
-                             {"fovy", set_fovy, command},
-                             {"w", buffer_save, command},
-                             {"e", plane_open, command},
+                             {"fovy", set_fovy, state.command},
+                             {"w", buffer_save, state.command},
+                             {"e", plane_open, state.command},
+                             {"q", quit, state.command},
                              {"dump", buffer_dump},
                              {0}};
 
@@ -75,23 +46,10 @@ Menu_command_t shortcuts[] = {{":", enable_command_mode},
                               {"m", enable_drag_mode},
                               {0}};
 
-void on_command(eer_t *menu)
-{
-    *command             = 0;
-    command_mode         = false;
-    cam.props.is_movable = true;
-}
 
-void on_command_not_found(eer_t *menu)
-{
-    *command     = 0;
-    command_mode = false;
-
-    cam.props.is_movable = true;
-}
 
 Menu(tty, _({.menu    = commands,
-             .command = command,
+             .command = state.command,
 
              .on = {
                  .command   = on_command,
@@ -100,84 +58,34 @@ Menu(tty, _({.menu    = commands,
 
 
 Menu(skm, _({.menu    = shortcuts,
-             .command = key_buffer,
+             .command = state.key_buffer,
 
              .on = {
                  .command   = on_shortcut,
                  .not_found = on_shortcut_not_found,
              }}));
 
-char     text[BUFFER_SIZE] = {0}; //{'p', 'e', 'v', 'i', '\0'};
-bool     edit_mode         = false;
-Vector3  cursor_position[BUFFER_SIZE];
-Vector3  cursor_cam_position[BUFFER_SIZE];
-Vector3  cursor_cam_up[BUFFER_SIZE];
-Matrix   cursor_matrix[BUFFER_SIZE];
+
+char text[BUFFER_SIZE] = {0}; //{'p', 'e', 'v', 'i', '\0'};
+
+// struct Cursor cursors[CURSOR_BUFFER_SIZE];
+
+Vector3 cursor_position[BUFFER_SIZE];
+Vector3 cursor_cam_position[BUFFER_SIZE];
+Vector3 cursor_cam_up[BUFFER_SIZE];
+
+
+bool     current_symbol;
+size_t   current_symbol_owner;
+size_t   current_symbol_index;
 size_t   cursor_index         = 1;
 size_t   current_cursor_index = 1;
 Vector3 *current_cursor;
-Vector3  cursor_initial = (Vector3){0.0f, 0.0f, 0.0f};
-Vector2  cursor_screen[BUFFER_SIZE];
 Color    cursor_color[BUFFER_SIZE];
-float    cursor_angle[BUFFER_SIZE];
 
 #define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
-// Function to calculate angles to rotate object towards camera
-Vector2 CalculateBillboardAngles(Vector3 objectPosition, Vector3 cameraPosition,
-                                 Vector3 cameraUp)
-{
-    Vector3 direction
-        = Vector3Normalize(Vector3Subtract(cameraPosition, objectPosition));
 
-    // Calculate yaw (horizontal rotation)
-    float yaw = atan2f(direction.x, direction.z);
-
-    // Calculate pitch (vertical rotation)
-    // Adjust the direction with respect to camera's up vector
-    Vector3 right = Vector3CrossProduct(cameraUp, direction);
-    direction
-        = Vector3CrossProduct(direction, right); // Re-orthogonalize direction
-
-    float pitch = asinf(direction.y);
-
-    return (Vector2){yaw, pitch};
-}
-
-// Generates a nice color with a random hue
-static Color GenerateRandomColor(float s, float v)
-{
-    const float Phi = 0.618033988749895f; // Golden ratio conjugate
-    float       h   = (float)GetRandomValue(0, 360);
-    h               = fmodf((h + h * Phi), 360.0f);
-    return ColorFromHSV(h, s, v);
-}
-
-Vector3 CalculateCameraPositionFromBillboard(Vector3 playerPosition,
-                                             Vector2 billboardAngles,
-                                             Vector3 cameraUp, float distance)
-{
-    // Calculate the direction vector from player to billboard
-    Vector3 direction;
-    direction.x = sinf(billboardAngles.x) * cosf(billboardAngles.y);
-    direction.y = sinf(billboardAngles.y);
-    direction.z = cosf(billboardAngles.x) * cosf(billboardAngles.y);
-
-    // Calculate the right vector based on camera up vector
-    Vector3 right = Vector3CrossProduct(cameraUp, direction);
-
-    // Calculate the camera position
-    Vector3 cameraPosition;
-    cameraPosition.x = playerPosition.x + direction.x * distance;
-    cameraPosition.y = playerPosition.y + direction.y * distance;
-    cameraPosition.z = playerPosition.z + direction.z * distance;
-
-    return cameraPosition;
-}
-
-bool   current_symbol;
-size_t current_symbol_owner;
-size_t current_symbol_index;
-void   on_dot_hover(eer_t *symbol)
+void on_dot_hover(eer_t *symbol)
 {
     eer_self(Symbol, symbol);
     current_symbol       = true;
@@ -185,57 +93,10 @@ void   on_dot_hover(eer_t *symbol)
     current_symbol_index = (size_t)self->props.content_index;
 }
 
-void *key_init(void *baudrate) { return 0; }
 
-int  key_pressed = 0;
-bool key_is_data_received()
-{
-
-    if (key_pressed) {
-        return true;
-    }
-
-
-    if (IsKeyPressed(KEY_ENTER)) {
-        key_pressed = '\r';
-        return true;
-    }
-
-    if (IsKeyPressed(KEY_BACKSPACE)) {
-        key_pressed = 0;
-        return true;
-    }
-    key_pressed = GetCharPressed();
-    if (key_pressed) {
-        return true;
-    }
-    return false;
-}
-
-bool key_is_transmit_ready() { return true; }
-
-void key_transmit(uint8_t data) {}
-
-unsigned char key_receive()
-{
-    int key     = key_pressed;
-    key_pressed = 0;
-    return key;
-}
-
-eer_serial_handler_t eer_keyboard = {
-    .init              = key_init,
-    .is_data_received  = key_is_data_received,
-    .is_transmit_ready = key_is_transmit_ready,
-    .transmit          = key_transmit,
-    .receive           = key_receive,
-};
-
-void read_symbol(eer_t *uart_ptr);
-void read_command(eer_t *uart);
 Serial(input,
        _({.handler = &eer_keyboard,
-          .buffer  = &command_buffer,
+          .buffer  = &state.cmd_buffer,
           .on      = {
                    .receive_block = read_command, /* Read and execute command */
                    .receive       = read_symbol   /* Echo input */
@@ -244,12 +105,12 @@ Serial(input,
 void render_end(eer_t *win)
 {
     EndMode3D();
-    if (is_fps_visible) {
+    if (state.is_fps_visible) {
         DrawFPS(10, 10);
     }
 
-    if (command_mode) {
-        DrawText(key_buffer, 10, GetScreenHeight() - 20, 10, GRAY);
+    if (state.mode == PEVI_MODE_COMMAND) {
+        DrawText(state.key_buffer, 10, GetScreenHeight() - 20, 10, GRAY);
     }
 
     shell();
@@ -260,10 +121,10 @@ void on_shortcut(eer_t *menu)
     while (Serial_read(&input, &data) == OK && data) {
     }
     int r
-        = lr_read_string(&command_buffer, key_buffer,
+        = lr_read_string(&state.cmd_buffer, state.key_buffer,
                          lr_owner(eer_prop(Serial, &input, handler)->receive));
     if (r != OK) {
-        key_buffer[0] = '\0';
+        state.key_buffer[0] = '\0';
     }
 }
 
@@ -273,36 +134,32 @@ void on_shortcut_not_found(eer_t *menu)
     while (Serial_read(&input, &data) == OK && data) {
     }
     int r
-        = lr_read_string(&command_buffer, key_buffer,
+        = lr_read_string(&state.cmd_buffer, state.key_buffer,
                          lr_owner(eer_prop(Serial, &input, handler)->receive));
     if (r != OK) {
-        key_buffer[0] = '\0';
+        state.key_buffer[0] = '\0';
     }
 }
 
-/**
- * \brief    Echo each symbol from input to output
- */
 void read_symbol(eer_t *uart_ptr)
 {
     // FIXME: hack
-    if (command_mode && eer_state(Serial, &input, sending) == 0) {
+    if (state.mode == PEVI_MODE_COMMAND
+        && eer_state(Serial, &input, sending) == 0) {
         int data;
-        lr_pop(&command_buffer, &data,
+        lr_pop(&state.cmd_buffer, &data,
                lr_owner(eer_prop(Serial, &input, handler)->receive));
-        lr_pop(&command_buffer, &data,
+        lr_pop(&state.cmd_buffer, &data,
                lr_owner(eer_prop(Serial, &input, handler)->receive));
     }
-    lr_read_string(&command_buffer, key_buffer,
+    lr_read_string(&state.cmd_buffer, state.key_buffer,
                    lr_owner(eer_prop(Serial, &input, handler)->receive));
 }
 
-/**
- * \brief    Read command from buffer
- */
+
 void read_command(eer_t *uart)
 {
-    char     *command_symbol = command;
+    char     *command_symbol = state.command;
     lr_data_t data;
     while (Serial_read(&input, &data) == OK && data) {
         *command_symbol++ = (uint8_t)data;
@@ -310,13 +167,13 @@ void read_command(eer_t *uart)
     *--command_symbol = 0;
 }
 
-/* UART communication */
 
 
 void enable_edit_mode(void *args)
 {
-    edit_mode            = true;
-    cam.props.is_movable = false;
+    state.mode           = PEVI_MODE_EDIT;
+    state.cam.is_movable = false;
+
     if (current_symbol) {
         current_cursor_index = current_symbol_owner;
         Vector3 text_pos     = cursor_position[current_cursor_index];
@@ -330,13 +187,22 @@ void enable_edit_mode(void *args)
         cam.state.camera.target   = text_pos;
 
     } else {
+        float saturation = 0.1f; // High saturation for vivid colors
+        float value      = 0.8f; // High value for bright colors
+                                 //
+        Vector2 angles = CalculateBillboardAngles(cam.state.camera.target,
+                                                  cam.state.camera.position,
+                                                  cam.state.camera.up);
+
+        struct Cursor cur = {.pos    = cam.state.camera.target,
+                             .angles = angles,
+                             .tint   = GenerateRandomColor(saturation, value)};
+
         cursor_position[cursor_index]     = cam.state.camera.target;
         cursor_cam_position[cursor_index] = cam.state.camera.position;
         cursor_cam_up[cursor_index]       = cam.state.camera.up;
         current_cursor                    = &cursor_position[cursor_index];
         current_cursor_index              = cursor_index;
-        float saturation           = 0.1f; // High saturation for vivid colors
-        float value                = 0.8f; // High value for bright colors
         Color randomColor          = GenerateRandomColor(saturation, value);
         cursor_color[cursor_index] = randomColor;
         cursor_index += 1;
@@ -373,8 +239,120 @@ void run_shell(char *command)
 
     /* close */
     pclose(fp);
-    cam.props.is_movable = true;
-    edit_mode            = false;
+    state.cam.is_movable = true;
+    state.mode           = PEVI_MODE_FREE;
+}
+
+void run_shell_interactive(char *command)
+{
+    int   fd[2]; // File descriptors for pipe
+    pid_t pid;
+    char  buffer[BUFSIZ];
+
+    // Create a pipe
+    if (pipe(fd) == -1) {
+        perror("pipe");
+        return;
+    }
+
+    // Fork a child process
+    pid = fork();
+    if (pid == -1) {
+        perror("fork");
+        return;
+    }
+
+    if (pid == 0) {   // Child process
+        close(fd[0]); // Close reading end of pipe
+
+        // Redirect stdout to the writing end of the pipe
+        dup2(fd[1], STDOUT_FILENO);
+        close(fd[1]);
+
+        // Execute the command
+        execlp("sh", "sh", "-c", command, NULL);
+        perror("execlp");
+    } else {          // Parent process
+        close(fd[1]); // Close writing end of pipe
+
+        // Read from the reading end of the pipe
+        ssize_t bytes_read;
+        while ((bytes_read = read(fd[0], buffer, BUFSIZ)) > 0) {
+            // Process the data, e.g., display it to the user
+            write(STDOUT_FILENO, buffer, bytes_read);
+            for (ssize_t i = 0; i < bytes_read; i++) {
+                // Write each character individually
+                lr_put(&lr, (char)buffer[i], lr_owner(current_cursor_index));
+            }
+        }
+
+        close(fd[0]); // Close reading end of pipe
+    }
+}
+
+
+void run_command_interactively(char *command)
+{
+    FILE *fp;
+    char  buffer[BUFSIZ];
+
+    // Open the command for reading
+    fp = popen(command, "r");
+    if (fp == NULL) {
+        perror("popen");
+        return;
+    }
+
+    // Read from the command and write to stdout
+    fd_set fds;
+    int    fd = fileno(fp);
+    while (1) {
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+        FD_SET(STDIN_FILENO, &fds);
+
+        // Use select() to wait for data on either stdin or command output
+        if (select(fd + 1, &fds, NULL, NULL, NULL) == -1) {
+            perror("select");
+            break;
+        }
+
+        // If data is available on stdin, read it and write to the command
+        if (FD_ISSET(STDIN_FILENO, &fds)) {
+            ssize_t bytes_read = read(STDIN_FILENO, buffer, BUFSIZ);
+            if (bytes_read <= 0)
+                break;
+
+            for (ssize_t i = 0; i < bytes_read; i++) {
+                // Write each character individually
+                lr_put(&lr, (char)buffer[i], lr_owner(current_cursor_index));
+            }
+            // if (write(fd, buffer, bytes_read) == -1) {
+            //     perror("write");
+            //     break;
+            // }
+        }
+
+        // If data is available on the command output, read it and write to
+        // stdout
+        if (FD_ISSET(fd, &fds)) {
+            ssize_t bytes_read = read(fd, buffer, BUFSIZ);
+            if (bytes_read <= 0)
+                break;
+
+            for (ssize_t i = 0; i < bytes_read; i++) {
+                // Write each character individually
+                lr_put(&lr, (char)buffer[i], lr_owner(current_cursor_index));
+            }
+            //   if (write(STDOUT_FILENO, buffer, bytes_read) == -1) {
+            //       perror("write");
+            //       break;
+            //   }
+        }
+    }
+
+    // Close the file stream
+    pclose(fp);
 }
 
 void enable_execute_mode(void *args)
@@ -384,7 +362,7 @@ void enable_execute_mode(void *args)
         current_cursor_index = current_symbol_owner;
 
         lr_read_string(&lr, command, lr_owner(current_cursor_index));
-        run_shell(command);
+        run_command_interactively(command);
     }
 }
 
@@ -410,8 +388,8 @@ void edit_mode_process()
         int data;
         lr_pop(&lr, &data, lr_owner(current_cursor_index));
     } else if (IsKeyPressed(KEY_ESCAPE)) {
-        edit_mode            = false;
-        cam.props.is_movable = true;
+        state.mode           = PEVI_MODE_FREE;
+        state.cam.is_movable = true;
         current_symbol       = 0;
     } else if (IsKeyPressed(KEY_ENTER)) {
         // handle newline
@@ -431,12 +409,6 @@ void edit_mode_process()
     }
 }
 
-void set_fovy(void *fovy_str)
-{
-    int fovy;
-    sscanf(fovy_str, "%*s %d", &fovy);
-    cam.state.camera.fovy = fovy;
-}
 
 void plane_open(void *command)
 {
@@ -450,7 +422,7 @@ void plane_open(void *command)
         fprintf(stderr, "Error opening file %s\n", filename);
         return;
     }
-   
+
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
     while (fgets(text, sizeof(text), file) != NULL) {
@@ -486,9 +458,9 @@ void buffer_save(void *command)
 void shell()
 {
     ignite(input);
-    if (command_mode) {
+    if (state.mode == PEVI_MODE_COMMAND) {
         use(tty);
-    } else if (edit_mode) {
+    } else if (state.mode == PEVI_MODE_EDIT) {
         edit_mode_process();
     } else {
         use(skm);
@@ -499,12 +471,22 @@ void shell()
 int main(void)
 {
     lr_result_t result = lr_init(&lr, BUFFER_SIZE, cells);
-    result             = lr_init(&command_buffer, BUFFER_SIZE, command_cells);
+    result = lr_init(&state.cmd_buffer, COMMAND_BUFFER_SIZE, state.cmd_cells);
+
+    state.cam = (Camera_props_t){(Vector3){10.0f, 0.0f, 1.0f},
+                                 (Vector3){0.0f, 0.0f, 0.0f},
+                                 (Vector3){0.0f, 1.0f, 0.0f},
+                                 45.0f,
+                                 CAMERA_PERSPECTIVE,
+                                 CAMERA_FREE,
+                                 true};
 
     //    Font fnt = LoadFontEx("FiraCode-Regular.ttf", 96, 0, 0);
     Font fnt = GetFontDefault();
 
-    ignite(clk, win, cam);
+    ignite(clk, win);
+
+    apply(Camera, cam, _(state.cam));
 
     if (drag_mode) {
         cursor_position[current_drag_cursor_index] = cam.state.camera.target;
@@ -518,7 +500,7 @@ int main(void)
 
     ClearBackground(RAYWHITE);
     //    DrawGrid(100, 1.0f);
-    if (!edit_mode) {
+    if (state.mode == PEVI_MODE_FREE) {
         rlPushMatrix();
         Vector3 pos    = cam.state.camera.target;
         Vector2 angles = CalculateBillboardAngles(
@@ -576,7 +558,7 @@ int main(void)
                      .bg_color     = bg_color,
                      .on           = {.hover = on_dot_hover}}));
 
-            if (edit_mode
+            if (state.mode == PEVI_MODE_EDIT
                 && (size_t)current_cursor_index == (size_t)owner_cell->data) {
                 txt.state.pos.z += 1.f;
                 Vector3 cursor_pos = txt.state.pos;
