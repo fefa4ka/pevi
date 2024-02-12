@@ -498,14 +498,11 @@ lr_result_t lr_get(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     if (head == tail) {
         /* If last cell for owner */
         /* delete and shorten the list, put a new link to lr->owners */
-	owner_cell->data = 0;
-	if(owner_cell != lr->owners) {
-		for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
-		     owner_swap--) {
-		    struct lr_cell *next_owner = owner_swap - 1;
-		    *owner_swap                = *next_owner;
-		}
-	}
+        for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
+             owner_swap--) {
+            struct lr_cell *next_owner = owner_swap - 1;
+            *owner_swap                = *next_owner;
+        }
 
         lr->owners->next = lr->write;
         lr->write        = lr->owners;
@@ -533,9 +530,12 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     struct lr_cell *owner_cell;
 
     lock(lr);
+    printf("BEFORE POP owner=%ld:\n", (uintptr_t)owner);
+    lr_dump(lr);
 
     owner_cell = lr_owner_find(lr, owner);
     if (owner_cell == NULL) {
+printf("EMPTYBUFF\n");
         return LR_ERROR_BUFFER_EMPTY;
     }
 
@@ -548,7 +548,9 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     head  = prev_owner->next->next;
     tail  = lr_owner_tail(owner_cell);
     *data = tail->data;
+
     if (head == tail) {
+	printf("LAST ENTRY INLIST\n");
         /* If last cell for owner */
         /* delete and shorten the list, put a new link to lr->owners */
         for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
@@ -565,6 +567,7 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
         } else {
             lr->owners += 1;
         }
+        prev_owner->next->next = tail->next;
     }
 
 
@@ -581,6 +584,8 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
 
     tail->next = lr->write;
     lr->write  = tail;
+    printf("AFTER POP owner=%ld:\n", (uintptr_t)owner);
+    lr_dump(lr);
 
     unlock_and_return(lr, LR_OK);
 }
