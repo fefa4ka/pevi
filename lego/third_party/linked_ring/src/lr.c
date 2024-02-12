@@ -530,12 +530,9 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     struct lr_cell *owner_cell;
 
     lock(lr);
-    printf("BEFORE POP owner=%ld:\n", (uintptr_t)owner);
-    lr_dump(lr);
 
     owner_cell = lr_owner_find(lr, owner);
     if (owner_cell == NULL) {
-printf("EMPTYBUFF\n");
         return LR_ERROR_BUFFER_EMPTY;
     }
 
@@ -550,7 +547,6 @@ printf("EMPTYBUFF\n");
     *data = tail->data;
 
     if (head == tail) {
-	printf("LAST ENTRY INLIST\n");
         /* If last cell for owner */
         /* delete and shorten the list, put a new link to lr->owners */
         for (struct lr_cell *owner_swap = owner_cell; owner_swap > lr->owners;
@@ -558,6 +554,9 @@ printf("EMPTYBUFF\n");
             struct lr_cell *next_owner = owner_swap - 1;
             *owner_swap                = *next_owner;
         }
+
+        if (prev_owner != owner_cell) 
+            prev_owner->next->next = tail->next;
 
         lr->owners->next = lr->write;
         lr->write        = lr->owners;
@@ -567,12 +566,11 @@ printf("EMPTYBUFF\n");
         } else {
             lr->owners += 1;
         }
-        prev_owner->next->next = tail->next;
     }
 
 
     needle = head;
-    do {
+    while (needle != tail) {
         if (needle->next == tail) {
             owner_cell->next = needle;
             needle->next     = tail->next;
@@ -580,12 +578,10 @@ printf("EMPTYBUFF\n");
         } else {
             needle = needle->next;
         }
-    } while (needle != tail->next);
+    }
 
     tail->next = lr->write;
     lr->write  = tail;
-    printf("AFTER POP owner=%ld:\n", (uintptr_t)owner);
-    lr_dump(lr);
 
     unlock_and_return(lr, LR_OK);
 }

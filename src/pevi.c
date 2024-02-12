@@ -50,22 +50,29 @@ void print_fps(void *arg) { is_fps_visible = !is_fps_visible; }
 bool command_mode = false;
 void enable_edit_mode(void *arg);
 void enable_execute_mode(void *arg);
+void enable_drag_mode(void *arg);
 void enable_command_mode(void *arg)
 {
     command_mode         = true;
     cam.props.is_movable = false;
 }
 
-void           set_fovy(void *fovy);
-void           buffer_dump(void *command) {
-lr_dump(&lr);
-}
-Menu_command_t commands[]
-    = {{"fps", print_fps}, {"fovy", set_fovy, command}, {"dump", buffer_dump}, {0}};
+void set_fovy(void *fovy);
+void buffer_save(void *command);
+void plane_open(void *command);
+
+void           buffer_dump(void *command) { lr_dump(&lr); }
+Menu_command_t commands[] = {{"fps", print_fps},
+                             {"fovy", set_fovy, command},
+                             {"w", buffer_save, command},
+                             {"e", plane_open, command},
+                             {"dump", buffer_dump},
+                             {0}};
 
 Menu_command_t shortcuts[] = {{":", enable_command_mode},
                               {"i", enable_edit_mode},
                               {"e", enable_execute_mode},
+                              {"m", enable_drag_mode},
                               {0}};
 
 void on_command(eer_t *menu)
@@ -278,7 +285,7 @@ void on_shortcut_not_found(eer_t *menu)
  */
 void read_symbol(eer_t *uart_ptr)
 {
-	// FIXME: hack
+    // FIXME: hack
     if (command_mode && eer_state(Serial, &input, sending) == 0) {
         int data;
         lr_pop(&command_buffer, &data,
@@ -335,6 +342,15 @@ void enable_edit_mode(void *args)
         cursor_index += 1;
     }
 }
+
+bool   drag_mode                 = false;
+size_t current_drag_cursor_index = 0;
+void   enable_drag_mode(void *args)
+{
+    drag_mode                 = !drag_mode;
+    current_drag_cursor_index = current_symbol_owner;
+}
+
 void run_shell(char *command)
 {
     FILE *fp;
@@ -422,6 +438,50 @@ void set_fovy(void *fovy_str)
     cam.state.camera.fovy = fovy;
 }
 
+void plane_open(void *command)
+{
+    FILE           *file;
+    char           *filename[COMMAND_BUFFER_SIZE];
+    struct lr_cell *owner_cell;
+    sscanf(command, "%*s %s", &filename);
+
+    file = fopen(filename, "r");
+    if (file == NULL) {
+        fprintf(stderr, "Error opening file %s\n", filename);
+        return;
+    }
+   
+    enable_edit_mode(0);
+    /* Read the output a line at a time - output it. */
+    while (fgets(text, sizeof(text), file) != NULL) {
+        lr_put_string(&lr, text, lr_owner(current_cursor_index));
+    }
+
+    fclose(file);
+}
+
+void buffer_save(void *command)
+{
+    FILE           *file;
+    char           *filename[COMMAND_BUFFER_SIZE];
+    struct lr_cell *owner_cell;
+    sscanf(command, "%*s %s", &filename);
+
+    file = fopen(filename, "w");
+    if (file == NULL) {
+        fprintf(stderr, "Error opening file %s\n", filename);
+        return;
+    }
+
+    for (owner_cell = lr_last_cell(&lr); owner_cell >= lr.owners;
+         owner_cell--) {
+
+        lr_read_string(&lr, text, lr_owner(owner_cell->data));
+        fprintf(file, "%s\n", text);
+    }
+
+    fclose(file);
+}
 
 void shell()
 {
@@ -446,6 +506,13 @@ int main(void)
 
     ignite(clk, win, cam);
 
+    if (drag_mode) {
+        cursor_position[current_drag_cursor_index] = cam.state.camera.target;
+        cursor_cam_position[current_drag_cursor_index]
+            = cam.state.camera.position;
+        cursor_cam_up[current_drag_cursor_index] = cam.state.camera.up;
+        current_cursor = &cursor_position[current_drag_cursor_index];
+    }
 
     current_symbol = false;
 
