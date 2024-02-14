@@ -49,34 +49,18 @@ Menu(tty, _({.menu    = commands,
 
 char text[BUFFER_SIZE] = {0}; //{'p', 'e', 'v', 'i', '\0'};
 
-// struct Cursor cursors[CURSOR_BUFFER_SIZE];
-
-Vector3 cursor_position[BUFFER_SIZE];
-Vector3 cursor_cam_position[BUFFER_SIZE];
-Vector3 cursor_cam_up[BUFFER_SIZE];
-
-
-bool     current_symbol;
-size_t   current_symbol_owner;
-size_t   current_symbol_index;
-size_t   cursor_index         = 1;
-size_t   current_cursor_index = 1;
-Vector3 *current_cursor;
-Color    cursor_color[BUFFER_SIZE];
 
 #define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
 
 void on_dot_hover(eer_t *symbol)
 {
+
     eer_self(Symbol, symbol);
-    //    state.cursor = (struct Cursor){
-    //	    .plane = state.planes[self->props.owner],
-    //	    .buffer = &file_buffer,
 
-
-    current_symbol       = true;
-    current_symbol_owner = (size_t)self->props.owner;
-    current_symbol_index = (size_t)self->props.content_index;
+    if (state.mode == PEVI_MODE_FREE) {
+        state.cursor.plane = (struct Plane *)self->props.owner;
+        state.cursor.cell  = (struct lr_cell *)self->props.owner;
+    }
 }
 
 
@@ -158,53 +142,43 @@ void read_command(eer_t *uart)
     *--command_symbol = 0;
 }
 
+struct Plane camera_plane(Camera *camera)
+{
+    float saturation = 0.1f; // High saturation for vivid colors
+    float value      = 0.8f; // High value for bright colors
+                             //
+    Vector2 angles = CalculateBillboardAngles(camera->target, camera->position,
+                                              camera->up);
+
+    return (struct Plane){.pos    = camera->target,
+                          .angles = angles,
+                          .tint   = GenerateRandomColor(saturation, value)};
+}
 
 void enable_edit_mode(void *args)
 {
     state.mode           = PEVI_MODE_EDIT;
     state.cam.is_movable = false;
-    state.cam.projection = CAMERA_ORTHOGRAPHIC;
-    if (current_symbol) {
-        current_cursor_index = current_symbol_owner;
-        Vector3 text_pos     = cursor_position[current_cursor_index];
-        Vector3 cam_pos      = cursor_cam_position[current_cursor_index];
-        Vector3 cam_up       = cursor_cam_up[current_cursor_index];
 
-        Vector2 angles = CalculateBillboardAngles(text_pos, cam_pos, cam_up);
 
-        cam.state.camera.position = cam_pos;
-        cam.state.camera.up       = cam_up;
-        cam.state.camera.target   = text_pos;
-
-    } else {
-        float saturation = 0.1f; // High saturation for vivid colors
-        float value      = 0.8f; // High value for bright colors
-                                 //
-        Vector2 angles = CalculateBillboardAngles(cam.state.camera.target,
-                                                  cam.state.camera.position,
-                                                  cam.state.camera.up);
-
-        struct Plane pln = {.pos    = cam.state.camera.target,
-                            .angles = angles,
-                            .tint   = GenerateRandomColor(saturation, value)};
-
-        cursor_position[cursor_index]     = cam.state.camera.target;
-        cursor_cam_position[cursor_index] = cam.state.camera.position;
-        cursor_cam_up[cursor_index]       = cam.state.camera.up;
-        current_cursor                    = &cursor_position[cursor_index];
-        current_cursor_index              = cursor_index;
-        Color randomColor          = GenerateRandomColor(saturation, value);
-        cursor_color[cursor_index] = randomColor;
-        cursor_index += 1;
+    cam.state.camera.projection = CAMERA_ORTHOGRAPHIC;
+    if (state.cursor.cell) {
+        return;
     }
+
+    state.planes[state.plane_nr] = camera_plane(&cam.state.camera);
+    state.cursor.plane           = &state.planes[state.plane_nr];
+    state.plane_nr += 1;
 }
 
-bool   drag_mode                 = false;
 size_t current_drag_cursor_index = 0;
 void   enable_drag_mode(void *args)
 {
-    drag_mode                 = !drag_mode;
-    current_drag_cursor_index = current_symbol_owner;
+    if (state.mode == PEVI_MODE_DRAG) {
+        state.mode = PEVI_MODE_FREE;
+    } else {
+        state.mode = PEVI_MODE_DRAG;
+    }
 }
 
 void run_shell(char *command)
@@ -216,15 +190,15 @@ void run_shell(char *command)
     fp = popen(command, "r");
     if (fp == NULL) {
 
-        lr_put(&file_buffer, (char)'\n', lr_owner(current_cursor_index));
+        lr_put(&file_buffer, (char)'\n', lr_owner(state.cursor.plane));
 
         lr_put_string(&file_buffer, "Failed to run command\n",
-                      lr_owner(current_cursor_index));
+                      lr_owner(state.cursor.plane));
     }
 
     /* Read the output a line at a time - output it. */
     while (fgets(path, sizeof(path), fp) != NULL) {
-        lr_put_string(&file_buffer, path, lr_owner(current_cursor_index));
+        lr_put_string(&file_buffer, path, lr_owner(state.cursor.plane));
     }
 
     /* close */
@@ -273,7 +247,7 @@ void run_shell_interactive(char *command)
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
                 lr_put(&file_buffer, (char)buffer[i],
-                       lr_owner(current_cursor_index));
+                       lr_owner(state.cursor.plane));
             }
         }
 
@@ -317,7 +291,7 @@ void run_command_interactively(char *command)
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
                 lr_put(&file_buffer, (char)buffer[i],
-                       lr_owner(current_cursor_index));
+                       lr_owner(state.cursor.plane));
             }
             // if (write(fd, buffer, bytes_read) == -1) {
             //     perror("write");
@@ -335,7 +309,7 @@ void run_command_interactively(char *command)
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
                 lr_put(&file_buffer, (char)buffer[i],
-                       lr_owner(current_cursor_index));
+                       lr_owner(state.cursor.plane));
             }
             //   if (write(STDOUT_FILENO, buffer, bytes_read) == -1) {
             //       perror("write");
@@ -350,11 +324,10 @@ void run_command_interactively(char *command)
 
 void enable_execute_mode(void *args)
 {
-    if (current_symbol) {
+    if (state.cursor.cell) {
         char command[COMMAND_BUFFER_SIZE];
-        current_cursor_index = current_symbol_owner;
 
-        lr_read_string(&file_buffer, command, lr_owner(current_cursor_index));
+        lr_read_string(&file_buffer, command, lr_owner(state.cursor.plane));
         run_command_interactively(command);
     }
 }
@@ -371,7 +344,7 @@ void edit_mode_process()
     while (key > 0) {
         // NOTE: Only allow keys in range [32..125]
         if ((key >= 32) && (key <= 125)) {
-            lr_put(&file_buffer, (char)key, lr_owner(current_cursor_index));
+            lr_put(&file_buffer, (char)key, lr_owner(state.cursor.plane));
         }
 
         key = GetCharPressed(); // Check next character in the queue
@@ -379,28 +352,28 @@ void edit_mode_process()
 
     if (IsKeyPressed(KEY_BACKSPACE)) {
         int data;
-        lr_pop(&file_buffer, &data, lr_owner(current_cursor_index));
+        lr_pop(&file_buffer, &data, lr_owner(state.cursor.plane));
     } else if (IsKeyPressed(KEY_ESCAPE)) {
-        state.mode           = PEVI_MODE_FREE;
-        state.cam.is_movable = true;
-        state.cam.projection = CAMERA_PERSPECTIVE;
-        current_symbol       = 0;
+        state.mode                  = PEVI_MODE_FREE;
+        state.cursor.plane          = 0;
+        state.cam.is_movable        = true;
+        cam.state.camera.projection = CAMERA_PERSPECTIVE;
+
 
     } else if (IsKeyPressed(KEY_ENTER)) {
         // handle newline
         int len = TextLength(text);
         if (len < sizeof(text) - 1) {
             char command[COMMAND_BUFFER_SIZE];
-            lr_read_string(&file_buffer, command,
-                           lr_owner(current_cursor_index));
-            lr_put(&file_buffer, (char)'\n', lr_owner(current_cursor_index));
+            lr_read_string(&file_buffer, command, lr_owner(state.cursor.plane));
+            lr_put(&file_buffer, (char)'\n', lr_owner(state.cursor.plane));
             //    run_shell(command);
         }
     } else if (IsKeyPressed(KEY_TAB)) {
         // handle newline
         int len = TextLength(text);
         if (len < sizeof(text) - 1) {
-            lr_put(&file_buffer, (char)'\t', lr_owner(current_cursor_index));
+            lr_put(&file_buffer, (char)'\t', lr_owner(state.cursor.plane));
         }
     }
 }
@@ -422,7 +395,7 @@ void plane_open(void *command)
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
     while (fgets(text, sizeof(text), file) != NULL) {
-        lr_put_string(&file_buffer, text, lr_owner(current_cursor_index));
+        lr_put_string(&file_buffer, text, lr_owner(state.cursor.plane));
     }
 
     fclose(file);
@@ -485,22 +458,23 @@ int main(void)
     apply(Camera, cam, _(state.cam));
 
 
-    if (drag_mode) {
-        cursor_position[current_drag_cursor_index] = cam.state.camera.target;
-        cursor_cam_position[current_drag_cursor_index]
-            = cam.state.camera.position;
-        cursor_cam_up[current_drag_cursor_index] = cam.state.camera.up;
-        current_cursor = &cursor_position[current_drag_cursor_index];
+    if (state.mode == PEVI_MODE_DRAG) {
+        struct Plane pln;
+        pln                        = camera_plane(&cam.state.camera);
+        state.cursor.plane->pos    = pln.pos;
+        state.cursor.plane->angles = pln.angles;
     }
-    current_symbol = false;
+    state.cursor.cell = false;
 
 
     ClearBackground(RAYWHITE);
 
     react(Cursor, cur,
-          _({.is_visible = state.mode == PEVI_MODE_FREE,
-             .pos        = cam.state.camera.target,
-             .size       = state.ui.cursor.size}));
+          _({
+              .is_visible = state.mode == PEVI_MODE_FREE,
+              .pos        = cam.state.camera.target,
+              .size       = state.ui.cursor.size,
+          }));
 
     // Foreach opened buffers (e.g. files, terminals);
 
@@ -510,23 +484,28 @@ int main(void)
         for (owner_cell = lr_last_cell(&file_buffer);
              owner_cell >= file_buffer.owners; owner_cell--) {
 
+
             rlPushMatrix();
 
             lr_read_string(&file_buffer, text, lr_owner(owner_cell->data));
-            Vector3 text_poss = cursor_position[(size_t)owner_cell->data];
-            Vector3 cam_pos   = cursor_cam_position[(size_t)owner_cell->data];
-            Vector3 cam_up    = cursor_cam_up[(size_t)owner_cell->data];
-            Color   bg_color  = cursor_color[(size_t)owner_cell->data];
-            Vector3 text_pos  = {0};
 
-            Vector2 angles
-                = CalculateBillboardAngles(text_poss, cam_pos, cam_up);
+            struct Plane pln;
+            Color        tint;
+            pln  = *(struct Plane *)owner_cell->data;
+            tint = pln.tint;
 
-            rlTranslatef(text_poss.x, text_poss.y, text_poss.z);
+            if (state.mode == PEVI_MODE_EDIT
+                && (struct Plane *)state.cursor.plane
+                       == (struct Plane *)owner_cell->data) {
+                pln      = camera_plane(&cam.state.camera);
+                pln.tint = tint;
+            }
 
-            rlRotatef(RAD2DEG * angles.x, 0, 1,
+            rlTranslatef(pln.pos.x, pln.pos.y, pln.pos.z);
+
+            rlRotatef(RAD2DEG * pln.angles.x, 0, 1,
                       0); // Rotate around Y-axis (yaw)
-            rlRotatef(RAD2DEG * angles.y, 1, 0,
+            rlRotatef(RAD2DEG * pln.angles.y, 1, 0,
                       0); // Rotate around X-axis (pitch)
 
 
@@ -537,14 +516,14 @@ int main(void)
                      .content      = text,
                      .owner        = owner_cell->data,
                      .font_size    = 12.0f,
-                     .pos          = text_pos,
-                     .absolute_pos = text_poss,
+                     .pos          = {0},
+                     .absolute_pos = pln.pos,
                      .camera       = &cam.state.camera,
-                     .bg_color     = bg_color,
+                     .bg_color     = pln.tint,
                      .on           = {.hover = on_dot_hover}}));
 
             if (state.mode == PEVI_MODE_EDIT
-                && (size_t)current_cursor_index == (size_t)owner_cell->data) {
+                && (size_t)state.cursor.plane == (size_t)owner_cell->data) {
                 txt.state.pos.z += 1.f;
                 Vector3 cursor_pos = txt.state.pos;
                 cursor_pos.x += 0.5f;

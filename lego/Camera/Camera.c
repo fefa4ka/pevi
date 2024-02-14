@@ -31,6 +31,10 @@ SHOULD_UPDATE(Camera)
             = 0.01f
               + 0.003f * distance_factor; // Adjust the coefficients as needed
 
+        float move_updown = IsKeyDown(KEY_SPACE);
+        if (!move_updown && IsKeyDown(KEY_LEFT_SHIFT))
+            move_updown = -1.;
+
         movement = (Vector3){
             (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) * speed_factor
                 - // Move forward-backward
@@ -38,15 +42,23 @@ SHOULD_UPDATE(Camera)
             (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) * speed_factor
                 - // Move right-left
                 (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) * speed_factor,
-            0.0f // Move up-down
+            (move_updown * speed_factor) // Move up-down
         };
     }
+    float dx = GetMouseDelta().x * 0.2;
+    float dy = GetMouseDelta().y * 0.2;
+
+    if (props->is_movable) {
+        if (!dx)
+            dx = IsKeyDown(KEY_L) ? 1 : IsKeyDown(KEY_H) ? -1.0 : 0;
+        if (!dy)
+            dy = IsKeyDown(KEY_J) ? 1 : IsKeyDown(KEY_K) ? -1.0 : 0;
+    }
+
     UpdateCameraPro(&state->camera, movement,
-                    (Vector3){
-                        GetMouseDelta().x * 0.2f, // Rotation: yaw
-                        GetMouseDelta().y * 0.2f, // Rotation: pitch
-                        0.0f                      // Rotation: roll
-                    },
+                    (Vector3){dx, // Rotation: yaw
+                              dy, // Rotation: pitch
+                              0},
                     GetMouseWheelMove() * 2.0f); // Move to target (zoom)
     return true;
 }
