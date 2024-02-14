@@ -29,6 +29,7 @@ typedef struct {
 typedef struct {
     Vector3 size;
     Vector3 pos;
+    float scale;
 } Text_state_t;
 
 eer_header(Text);

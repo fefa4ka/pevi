@@ -5,33 +5,31 @@ struct Pevi state;
 
 void shell();
 
-#define BUFFER_SIZE 1000
-struct lr_cell     cells[BUFFER_SIZE];
-struct linked_ring lr;
+struct lr_cell cells[BUFFER_SIZE];
+struct linked_ring file_buffer;
 
 Clock(clk, &hw(timer), TIMESTAMP);
 Camera_new(cam);
-
-void render_start(eer_t *win)
-{
-    //	BeginMode3D(cam.state.camera); // WHY THIS DON'T WORK?
-}
-
-void render_end(eer_t *win);
-
 Window(win, _({"pevi", WINDOW_WIDTH, WINDOW_HEIGHT, &cam.state.camera,
                .on = {.before = render_start, .after = render_end}}));
 Text_new(txt);
-Symbol_new(dot);
-
-void quit(void *command)
-{
-    CloseWindow();
-    exit(0);
-}
 
 
-void           buffer_dump(void *command) { lr_dump(&lr); }
+// Shortcuts
+Menu_command_t shortcuts[] = {{":", enable_command_mode},
+                              {"i", enable_edit_mode},
+                              {"e", enable_execute_mode},
+                              {"m", enable_drag_mode},
+                              {0}};
+Menu(skm, _({.menu    = shortcuts,
+             .command = state.key_buffer,
+
+             .on = {
+                 .command   = on_shortcut,
+                 .not_found = on_shortcut_not_found,
+             }}));
+
+// Commands
 Menu_command_t commands[] = {{"fps", print_fps},
                              {"fovy", set_fovy, state.command},
                              {"w", buffer_save, state.command},
@@ -39,30 +37,12 @@ Menu_command_t commands[] = {{"fps", print_fps},
                              {"q", quit, state.command},
                              {"dump", buffer_dump},
                              {0}};
-
-Menu_command_t shortcuts[] = {{":", enable_command_mode},
-                              {"i", enable_edit_mode},
-                              {"e", enable_execute_mode},
-                              {"m", enable_drag_mode},
-                              {0}};
-
-
-
 Menu(tty, _({.menu    = commands,
              .command = state.command,
 
              .on = {
                  .command   = on_command,
                  .not_found = on_command_not_found,
-             }}));
-
-
-Menu(skm, _({.menu    = shortcuts,
-             .command = state.key_buffer,
-
-             .on = {
-                 .command   = on_shortcut,
-                 .not_found = on_shortcut_not_found,
              }}));
 
 
@@ -88,6 +68,11 @@ Color    cursor_color[BUFFER_SIZE];
 void on_dot_hover(eer_t *symbol)
 {
     eer_self(Symbol, symbol);
+    //    state.cursor = (struct Cursor){
+    //	    .plane = state.planes[self->props.owner],
+    //	    .buffer = &file_buffer,
+
+
     current_symbol       = true;
     current_symbol_owner = (size_t)self->props.owner;
     current_symbol_index = (size_t)self->props.content_index;
@@ -102,9 +87,14 @@ Serial(input,
                    .receive       = read_symbol   /* Echo input */
           }}));
 
+void render_start(eer_t *win)
+{
+    // BeginMode3D(cam.state.camera); // FIXME: Blinking appears
+}
 void render_end(eer_t *win)
 {
     EndMode3D();
+
     if (state.is_fps_visible) {
         DrawFPS(10, 10);
     }
@@ -168,12 +158,11 @@ void read_command(eer_t *uart)
 }
 
 
-
 void enable_edit_mode(void *args)
 {
     state.mode           = PEVI_MODE_EDIT;
     state.cam.is_movable = false;
-
+    state.cam.projection = CAMERA_ORTHOGRAPHIC;
     if (current_symbol) {
         current_cursor_index = current_symbol_owner;
         Vector3 text_pos     = cursor_position[current_cursor_index];
@@ -194,9 +183,9 @@ void enable_edit_mode(void *args)
                                                   cam.state.camera.position,
                                                   cam.state.camera.up);
 
-        struct Cursor cur = {.pos    = cam.state.camera.target,
-                             .angles = angles,
-                             .tint   = GenerateRandomColor(saturation, value)};
+        struct Plane pln = {.pos    = cam.state.camera.target,
+                            .angles = angles,
+                            .tint   = GenerateRandomColor(saturation, value)};
 
         cursor_position[cursor_index]     = cam.state.camera.target;
         cursor_cam_position[cursor_index] = cam.state.camera.position;
@@ -226,15 +215,15 @@ void run_shell(char *command)
     fp = popen(command, "r");
     if (fp == NULL) {
 
-        lr_put(&lr, (char)'\n', lr_owner(current_cursor_index));
+        lr_put(&file_buffer, (char)'\n', lr_owner(current_cursor_index));
 
-        lr_put_string(&lr, "Failed to run command\n",
+        lr_put_string(&file_buffer, "Failed to run command\n",
                       lr_owner(current_cursor_index));
     }
 
     /* Read the output a line at a time - output it. */
     while (fgets(path, sizeof(path), fp) != NULL) {
-        lr_put_string(&lr, path, lr_owner(current_cursor_index));
+        lr_put_string(&file_buffer, path, lr_owner(current_cursor_index));
     }
 
     /* close */
@@ -282,7 +271,8 @@ void run_shell_interactive(char *command)
             write(STDOUT_FILENO, buffer, bytes_read);
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
-                lr_put(&lr, (char)buffer[i], lr_owner(current_cursor_index));
+                lr_put(&file_buffer, (char)buffer[i],
+                       lr_owner(current_cursor_index));
             }
         }
 
@@ -325,7 +315,8 @@ void run_command_interactively(char *command)
 
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
-                lr_put(&lr, (char)buffer[i], lr_owner(current_cursor_index));
+                lr_put(&file_buffer, (char)buffer[i],
+                       lr_owner(current_cursor_index));
             }
             // if (write(fd, buffer, bytes_read) == -1) {
             //     perror("write");
@@ -342,7 +333,8 @@ void run_command_interactively(char *command)
 
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
-                lr_put(&lr, (char)buffer[i], lr_owner(current_cursor_index));
+                lr_put(&file_buffer, (char)buffer[i],
+                       lr_owner(current_cursor_index));
             }
             //   if (write(STDOUT_FILENO, buffer, bytes_read) == -1) {
             //       perror("write");
@@ -361,7 +353,7 @@ void enable_execute_mode(void *args)
         char command[COMMAND_BUFFER_SIZE];
         current_cursor_index = current_symbol_owner;
 
-        lr_read_string(&lr, command, lr_owner(current_cursor_index));
+        lr_read_string(&file_buffer, command, lr_owner(current_cursor_index));
         run_command_interactively(command);
     }
 }
@@ -378,7 +370,7 @@ void edit_mode_process()
     while (key > 0) {
         // NOTE: Only allow keys in range [32..125]
         if ((key >= 32) && (key <= 125)) {
-            lr_put(&lr, (char)key, lr_owner(current_cursor_index));
+            lr_put(&file_buffer, (char)key, lr_owner(current_cursor_index));
         }
 
         key = GetCharPressed(); // Check next character in the queue
@@ -386,25 +378,28 @@ void edit_mode_process()
 
     if (IsKeyPressed(KEY_BACKSPACE)) {
         int data;
-        lr_pop(&lr, &data, lr_owner(current_cursor_index));
+        lr_pop(&file_buffer, &data, lr_owner(current_cursor_index));
     } else if (IsKeyPressed(KEY_ESCAPE)) {
         state.mode           = PEVI_MODE_FREE;
         state.cam.is_movable = true;
+        state.cam.projection = CAMERA_PERSPECTIVE;
         current_symbol       = 0;
+
     } else if (IsKeyPressed(KEY_ENTER)) {
         // handle newline
         int len = TextLength(text);
         if (len < sizeof(text) - 1) {
             char command[COMMAND_BUFFER_SIZE];
-            lr_read_string(&lr, command, lr_owner(current_cursor_index));
-            lr_put(&lr, (char)'\n', lr_owner(current_cursor_index));
+            lr_read_string(&file_buffer, command,
+                           lr_owner(current_cursor_index));
+            lr_put(&file_buffer, (char)'\n', lr_owner(current_cursor_index));
             //    run_shell(command);
         }
     } else if (IsKeyPressed(KEY_TAB)) {
         // handle newline
         int len = TextLength(text);
         if (len < sizeof(text) - 1) {
-            lr_put(&lr, (char)'\t', lr_owner(current_cursor_index));
+            lr_put(&file_buffer, (char)'\t', lr_owner(current_cursor_index));
         }
     }
 }
@@ -426,7 +421,7 @@ void plane_open(void *command)
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
     while (fgets(text, sizeof(text), file) != NULL) {
-        lr_put_string(&lr, text, lr_owner(current_cursor_index));
+        lr_put_string(&file_buffer, text, lr_owner(current_cursor_index));
     }
 
     fclose(file);
@@ -445,10 +440,10 @@ void buffer_save(void *command)
         return;
     }
 
-    for (owner_cell = lr_last_cell(&lr); owner_cell >= lr.owners;
-         owner_cell--) {
+    for (owner_cell = lr_last_cell(&file_buffer);
+         owner_cell >= file_buffer.owners; owner_cell--) {
 
-        lr_read_string(&lr, text, lr_owner(owner_cell->data));
+        lr_read_string(&file_buffer, text, lr_owner(owner_cell->data));
         fprintf(file, "%s\n", text);
     }
 
@@ -470,7 +465,7 @@ void shell()
 
 int main(void)
 {
-    lr_result_t result = lr_init(&lr, BUFFER_SIZE, cells);
+    lr_result_t result = lr_init(&file_buffer, BUFFER_SIZE, cells);
     result = lr_init(&state.cmd_buffer, COMMAND_BUFFER_SIZE, state.cmd_cells);
 
     state.cam = (Camera_props_t){(Vector3){10.0f, 0.0f, 1.0f},
@@ -513,21 +508,21 @@ int main(void)
         //            rlRotatef(RAD2DEG * angles.y, 1, 0,
         //                      0); // Rotate around X-axis (pitch)
 
-        DrawCube(pos, 1.0f, 0.25f, 1.0f, PURPLE);
-        DrawCubeWires(pos, 1.0f, 0.25f, 1.0f, DARKPURPLE);
+        DrawCube(pos, 0.6f, 0.15f, 0.6f, PURPLE);
+        DrawCubeWires(pos, 0.6f, 0.15f, 0.6f, DARKPURPLE);
         rlPopMatrix();
     }
 
 
-    if (lr.owners != NULL) {
+    if (file_buffer.owners != NULL) {
         struct lr_cell *owner_cell;
 
-        for (owner_cell = lr_last_cell(&lr); owner_cell >= lr.owners;
-             owner_cell--) {
+        for (owner_cell = lr_last_cell(&file_buffer);
+             owner_cell >= file_buffer.owners; owner_cell--) {
 
             rlPushMatrix();
 
-            lr_read_string(&lr, text, lr_owner(owner_cell->data));
+            lr_read_string(&file_buffer, text, lr_owner(owner_cell->data));
             Vector3 text_poss = cursor_position[(size_t)owner_cell->data];
             Vector3 cam_pos   = cursor_cam_position[(size_t)owner_cell->data];
             Vector3 cam_up    = cursor_cam_up[(size_t)owner_cell->data];
@@ -563,8 +558,8 @@ int main(void)
                 txt.state.pos.z += 1.f;
                 Vector3 cursor_pos = txt.state.pos;
                 cursor_pos.x += 0.5f;
-                DrawCube(cursor_pos, 0.8f, 0.25f, 0.25f, PURPLE);
-                DrawCubeWires(cursor_pos, 0.8f, 0.25f, 0.25f, DARKPURPLE);
+                DrawCube(cursor_pos, 0.6f, 0.15f, 0.15f, PURPLE);
+                DrawCubeWires(cursor_pos, 0.6f, 0.15f, 0.15f, DARKPURPLE);
             }
 
             rlPopMatrix();

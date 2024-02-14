@@ -1,6 +1,6 @@
 #include "Camera.h"
-#include <raymath.h>
 #include <eers.h>
+#include <raymath.h>
 
 
 ///
@@ -23,10 +23,13 @@ WILL_MOUNT(Camera)
 SHOULD_UPDATE(Camera)
 {
     Vector3 movement = {0};
-    if(props->is_movable) {
+    if (props->is_movable) {
 
- float distance_factor = Vector3Distance(state->camera.position, state->camera.target);
-        float speed_factor = 0.01f + 0.003f * distance_factor; // Adjust the coefficients as needed
+        float distance_factor
+            = Vector3Distance(state->camera.position, state->camera.target);
+        float speed_factor
+            = 0.01f
+              + 0.003f * distance_factor; // Adjust the coefficients as needed
 
         movement = (Vector3){
             (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) * speed_factor
@@ -36,9 +39,9 @@ SHOULD_UPDATE(Camera)
                 - // Move right-left
                 (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) * speed_factor,
             0.0f // Move up-down
-        };    
+        };
     }
-	UpdateCameraPro(&state->camera, movement,
+    UpdateCameraPro(&state->camera, movement,
                     (Vector3){
                         GetMouseDelta().x * 0.2f, // Rotation: yaw
                         GetMouseDelta().y * 0.2f, // Rotation: pitch
@@ -51,19 +54,13 @@ SHOULD_UPDATE(Camera)
 ///
 /// \brief
 ///
-WILL_UPDATE(Camera) {
-
-
-	BeginMode3D(state->camera); }
+WILL_UPDATE(Camera) { BeginMode3D(state->camera); }
 
 ///
 /// \brief
 ///
-RELEASE(Camera) {
-
-}
+RELEASE(Camera) {}
 
 DID_MOUNT_SKIP(Camera);
-DID_UPDATE(Camera) { 
- }
+DID_UPDATE(Camera) {}
 

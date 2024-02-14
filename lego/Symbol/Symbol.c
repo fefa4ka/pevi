@@ -3,8 +3,7 @@
 #include <math.h>
 #include <rlgl.h>
 
-static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
-                              float fontSpacing, float lineSpacing);
+static Vector3 symbol_measure(Font font, char *symbol, float fontSize);
 
 ///
 /// \brief
@@ -27,7 +26,7 @@ SHOULD_UPDATE(Symbol)
     int codepoint = GetCodepoint(next_props->content, &codepointByteCount);
     state->glyph  = GetGlyphIndex(next_props->font, codepoint);
     state->size   = symbol_measure(next_props->font, next_props->content,
-                                   next_props->font_size, 1.0f, 0.0f);
+                                   next_props->font_size);
 
     if (state->glyph)
         return true;
@@ -148,7 +147,7 @@ RELEASE(Symbol)
         (BoundingBox){
             (Vector3){props->absolute_pos.x + state->pos.x,
                       props->absolute_pos.y + state->pos.y - state->size.y / 2,
-                      props->absolute_pos.z + state->pos.z - state->size.z / 2},
+                      props->absolute_pos.z + state->pos.z},
             (Vector3){props->absolute_pos.x + state->pos.x + state->size.x,
                       props->absolute_pos.y + state->pos.y + state->size.y ,
                       props->absolute_pos.z + state->pos.z
@@ -158,9 +157,12 @@ RELEASE(Symbol)
     if(collision.hit && props->on.hover) props->on.hover(self);
 
     if (collision.hit || props->is_selected) {
+	    Vector3 cursor_size = state->size;
+	    cursor_size.y = 0.15;
+
         DrawCubeWiresV((Vector3){state->pos.x + state->size.x / 2, state->pos.y,
                                  state->pos.z + state->size.z / 2},
-                       state->size, RED);
+                       cursor_size, RED);
     }
 }
 
@@ -170,8 +172,7 @@ DID_UPDATE_SKIP(Symbol);
 
 // Measure a text in 3D. For some reason `MeasureTextEx()` just doesn't seem to
 // work so i had to use this instead.
-static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
-                              float fontSpacing, float lineSpacing)
+static Vector3 symbol_measure(Font font, char *symbol, float fontSize)
 {
     float tempTextWidth = 0.0f; // Used to count longer text line width
 
@@ -189,10 +190,10 @@ static Vector3 symbol_measure(Font font, char *symbol, float fontSize,
 
 
     if (font.glyphs[index].advanceX != 0)
-        textWidth += (font.glyphs[index].advanceX + fontSpacing)
+        textWidth += (font.glyphs[index].advanceX)
                      / (float)font.baseSize * scale;
     else
-        textWidth += (font.recs[index].width + fontSpacing + font.glyphs[index].offsetX)
+        textWidth += (font.recs[index].width + font.glyphs[index].offsetX)
                      / (float)font.baseSize * scale;
 
     Vector3 vec = {0};

@@ -22,9 +22,11 @@ WILL_MOUNT(Text) {}
 ///
 SHOULD_UPDATE(Text)
 {
-
-    state->size  = MeasureText3D(GetFontDefault(), props->content,
-                                 props->font_size, props->spacing, props->line_spacing);
+    Font *font   = &next_props->font;
+    state->scale = next_props->font_size / (float)next_props->font.baseSize;
+    state->size
+        = MeasureText3D(GetFontDefault(), props->content, props->font_size,
+                        props->spacing, props->line_spacing);
     state->pos.x = -1 * state->size.x / 2.0f + props->pos.x;
     state->pos.y = props->pos.y;
     state->pos.z = props->pos.z;
@@ -47,47 +49,48 @@ WILL_UPDATE(Text)
 ///
 RELEASE(Text)
 {
-	Font font =props->font;
+    Font font = props->font;
     Symbol_new(dot);
-    
 
-        DrawCubeV((Vector3){state->pos.x + state->size.x / 2, state->pos.y - 0.15,
-                                 state->pos.z + state->size.z / 2},
-                       state->size, props->bg_color);
+
+    DrawCubeV((Vector3){state->pos.x + state->size.x / 2, state->pos.y - 0.15,
+                        state->pos.z + state->size.z / 2},
+              state->size, props->bg_color);
 
     eer_init(dot);
     for (int index = 0; index < TextLength(props->content); index++) {
-	if (props->content[index] == '\n')
-        {
+        if (props->content[index] == '\n') {
 
-		state->pos.z += dot.state.size.z;
-	    state->pos.x = -1 * state->size.x / 2.0f + props->pos.x;
-	} else if(props->content[index] == '\t') {
-	    state->pos.x += props->spacing * 2;
-	} else{
-		react(Symbol, dot,
-		      _({.font      = props->font,
-			 .tint      = props->tint,
-			 .content   = &props->content[index],
-			 .font_size = props->font_size,
-			 .pos       = state->pos,
-			 .absolute_pos = props->absolute_pos,
-			 .camera = props->camera,
-			 .on = { .hover = props->on.hover},
-			 .owner = props->owner,
-			 .content_index = index}));
+            state->pos.z += dot.state.size.z;
+            state->pos.x = -1 * state->size.x / 2.0f + props->pos.x;
+        } else if (props->content[index] == '\t') {
+            state->pos.x += props->spacing * 2;
+        } else {
+            react(Symbol, dot,
+                  _({.font          = props->font,
+                     .tint          = props->tint,
+                     .content       = &props->content[index],
+                     .font_size     = props->font_size,
+                     .pos           = state->pos,
+                     .absolute_pos  = props->absolute_pos,
+                     .camera        = props->camera,
+                     .on            = {.hover = props->on.hover},
+                     .owner         = props->owner,
+                     .content_index = index}));
 
 
-	state->pos.x += dot.state.size.x;
-//if (font.glyphs[index].advanceX != 0)
-//                state->pos.x  += (font.glyphs[index].advanceX + props->spacing)
-//                             / (float)font.baseSize * dot.state.scale;
-//            else
-//                state->pos.x
-//                    += (font.recs[index].width + font.glyphs[index].offsetX)
-//                       / (float)font.baseSize * dot.state.scale;
-
-	}
+            state->pos.x += dot.state.size.x + props->spacing / font.baseSize * state->scale;
+            // if (font.glyphs[index].advanceX != 0)
+            //                 state->pos.x  += (font.glyphs[index].advanceX +
+            //                 props->spacing)
+            //                              / (float)font.baseSize *
+            //                              dot.state.scale;
+            //             else
+            //                 state->pos.x
+            //                     += (font.recs[index].width +
+            //                     font.glyphs[index].offsetX)
+            //                        / (float)font.baseSize * dot.state.scale;
+        }
     }
 }
 
@@ -128,12 +131,12 @@ static Vector3 MeasureText3D(Font font, const char *text, float fontSize,
 
         if (letter != '\n') {
             if (font.glyphs[index].advanceX != 0)
-                textWidth += (font.glyphs[index].advanceX + fontSpacing)
+                textWidth += (font.glyphs[index].advanceX)
                              / (float)font.baseSize * scale;
             else
-                textWidth
-                    += (font.recs[index].width + fontSpacing + font.glyphs[index].offsetX)
-                       / (float)font.baseSize * scale;
+                textWidth += (font.recs[index].width 
+                              + font.glyphs[index].offsetX)
+                             / (float)font.baseSize * scale;
         } else {
             if (tempTextWidth < textWidth)
                 tempTextWidth = textWidth;
@@ -158,5 +161,4 @@ static Vector3 MeasureText3D(Font font, const char *text, float fontSize,
 
     return vec;
 }
-
 

@@ -8,40 +8,41 @@
 ///
 WILL_MOUNT(Window)
 {
-InitWindow(props->width, props->height, props->title);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+    InitWindow(props->width, props->height, props->title);
 }
 
 ///
-/// \brief 
+/// \brief
 ///
 SHOULD_UPDATE_SKIP(Window);
 
 ///
-/// \brief 
+/// \brief
 ///
 WILL_UPDATE(Window)
 {
+    if (props->on.before)
+        props->on.before(self);
 }
 
 ///
-/// \brief 
+/// \brief
 ///
-RELEASE(Window)
+RELEASE(Window) { BeginDrawing(); }
+
+DID_MOUNT(Window)
 {
-    BeginDrawing();
-
-	if(props->on.before)  props->on.before(self);
-}
-
-DID_MOUNT(Window) {EndMode3D(); 
-	if(props->on.after)  props->on.after(self);
-	EndDrawing();
+    if (props->on.after)
+        props->on.after(self);
+    EndDrawing();
 }
 DID_UPDATE(Window)
 {
 
-	if(props->on.after)  props->on.after(self);
-	EndDrawing();
-}	
+    if (props->on.after)
+        props->on.after(self);
+    EndDrawing();
+}
 
-//DID_UNMOUNT CloseWindow()
+// DID_UNMOUNT CloseWindow()

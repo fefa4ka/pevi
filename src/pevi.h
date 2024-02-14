@@ -15,6 +15,7 @@
 #include <rlgl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "cfg.h"
 #include "pemath.h"
@@ -22,6 +23,27 @@
 #include "input.h"
 
 enum pevi_mode { PEVI_MODE_FREE, PEVI_MODE_EDIT, PEVI_MODE_COMMAND };
+
+struct Plane {
+	Vector3 pos;
+	Vector2 angles;
+	Color tint;
+};
+
+struct Cursor {
+	struct Plane *plane;			    
+	struct linked_ring *buffer; // Text buffer
+	struct lr_cell *cell;  // selected cell
+};
+
+struct Selection {
+	size_t cursor_nr;
+	struct Cursor *cursors;
+};
+
+// cursor_buffer
+// owner -> file 
+// cell -> struct Cursor
 
 struct Pevi {
     enum pevi_mode mode;
@@ -33,12 +55,17 @@ struct Pevi {
 
     struct linked_ring cmd_buffer;
     struct lr_cell  cmd_cells[COMMAND_BUFFER_SIZE];
+
+    struct Cursor cursor;
+    struct Selection selection;
+
+    struct Plane planes[PLANE_BUFFER_SIZE];
 };
 
-struct Cursor {
-	Vector3 pos;
-	Vector2 angles;
-	Color tint;
-};
+
 
 extern struct Pevi state;
+
+
+void render_start(eer_t *win);
+void render_end(eer_t *win);

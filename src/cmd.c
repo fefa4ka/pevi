@@ -32,3 +32,13 @@ void on_command_not_found(eer_t *menu)
     state.mode           = PEVI_MODE_FREE;
     state.cam.is_movable = true;
 }
+
+void           buffer_dump(void *command) { lr_dump(&state.cmd_buffer); }
+
+void quit(void *command)
+{
+    CloseWindow();
+    exit(0);
+}
+
+

@@ -5,10 +5,13 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+
+#include <stdio.h>
+#include <unistd.h>
 /* Time */
 static void timer_init(void *config)
 {
-    eer_profiler_count(timer_init);
+  //  eer_profiler_count(timer_init);
     srand(time(NULL));
 }
 
@@ -38,8 +41,12 @@ static inline void *timer_get(void *value)
 {
     clock_t tick = clock();
     // printf("%ld - %ld\n", tick, timer_get_ns());
-    eer_profiler_count_log(timer_get, "()=%d", tick);
-   // printf("Timer get: %ld, %ld, %d\r\n", tick, CLOCKS_PER_SEC, tick * 1000 /
+   
+
+    //eer_profiler_count_log(timer_get, "()=%d", tick);
+   
+
+    // printf("Timer get: %ld, %ld, %d\r\n", tick, CLOCKS_PER_SEC, tick * 1000 /
    // CLOCKS_PER_SEC);
     *(uint64_t*)value = tick;
 
@@ -73,7 +80,7 @@ static void timer_compare_set(uint16_t ticks, eer_callback_t *callback)
 {
     uint16_t now;
     timer_get(&now);
-    eer_profiler_count(timer_compare_set);
+    //eer_profiler_count(timer_compare_set);
     for (size_t i = 0; i < TIMERS_NR; i++) {
         if (timer_callback_buffer[i].callback == NULL) {
             struct timer_callback timer_callback
@@ -103,21 +110,21 @@ void *timer_isr_enable(void *args_ptr, eer_callback_t *callback)
 
 static void timer_off()
 {
-    eer_profiler_count(timer_off);
+//    eer_profiler_count(timer_off);
     // printf("Timer off\r\n");
 }
 
 static uint16_t timer_ticks_to_us(uint16_t ticks)
 {
     uint16_t ms = ticks * 1000 / CLOCKS_PER_SEC;
-    eer_profiler_count_log(timer_ticks_to_us, "(%d)=%d ms", ticks, ms);
+//    eer_profiler_count_log(timer_ticks_to_us, "(%d)=%d ms", ticks, ms);
     return ticks;
 }
 
 static uint16_t timer_us_to_ticks(uint16_t us)
 {
     uint16_t ms = us * CLOCKS_PER_SEC / 1000;
-    eer_profiler_count_log(timer_us_to_ticks, "(%d)=%d", us, us);
+//    eer_profiler_count_log(timer_us_to_ticks, "(%d)=%d", us, us);
     return us;
 }
 
