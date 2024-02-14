@@ -4,12 +4,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// This header file defines a set of macros and functions for creating and 
-// managing components in the EER framework. 
+// This header file defines a set of macros and functions for creating and
+// managing components in the EER framework.
 //
-// It provides a set of lifecycle methods that can be implemented to handle 
-// the various stages of a component's lifecycle, such as mounting, updating, 
-// and unmounting. Additionally, it defines macros for accessing a component's 
+// It provides a set of lifecycle methods that can be implemented to handle
+// the various stages of a component's lifecycle, such as mounting, updating,
+// and unmounting. Additionally, it defines macros for accessing a component's
 // props and state, as well as macros for creating and initializing components.
 
 /*
@@ -26,7 +26,7 @@
 
 /**
  * @brief Defines the header for a component of type `Type`.
- * 
+ *
  * @param Type The type of the component.
  */
 #define eer_header(Type)                                                       \
@@ -53,15 +53,16 @@
 
 /**
  * @brief Defines a pointer to a component of type `Type`.
- * 
+ *
  * @param Type The type of the component.
  * @param instance The instance of the component.
  */
 #define eer_self(Type, instance) Type##_t *self = instance
 
 /**
- * @brief Returns the value of the specified attribute of the props of the given instance.
- * 
+ * @brief Returns the value of the specified attribute of the props of the given
+ * instance.
+ *
  * @param Type The type of the component.
  * @param instance The instance of the component.
  * @param attribute The attribute of the props to return.
@@ -70,8 +71,9 @@
     (((Type##_t *)instance)->props.attribute)
 
 /**
- * @brief Returns the value of the specified attribute of the state of the given instance.
- * 
+ * @brief Returns the value of the specified attribute of the state of the given
+ * instance.
+ *
  * @param Type The type of the component.
  * @param instance The instance of the component.
  * @param attribute The attribute of the state to return.
@@ -184,14 +186,10 @@
 
 /* Skip */
 #define eer_lifecycle_skip(Type, stage)                                        \
-    void Type##_##stage(void *instance)                                        \
-    {                                                                          \
-    }
+    void Type##_##stage(void *instance) {}
 
 #define eer_updatecycle_skip(Type, stage, return_type)                         \
-    return_type Type##_##stage(void *instance, void *next_props_ptr)           \
-    {                                                                          \
-    }
+    return_type Type##_##stage(void *instance, void *next_props_ptr) {}
 
 
 #define eer_will_mount_skip(Type)                                              \
@@ -277,9 +275,9 @@
 #define eer_react(Type, name, propsValue)                                      \
     {                                                                          \
         Type##_props_t next_props = propsValue;                                \
-        eer_staging(&name.instance, &next_props);                   \
-        if (CONTEXT_BLOCKED != eer_land.state.context) {                       \
-            name.instance.stage.state.step = STAGE_REACTING;                  \
+        if (eer_staging(&name.instance, &next_props)                           \
+            && CONTEXT_BLOCKED != eer_land.state.context) {                    \
+            name.instance.stage.state.step = STAGE_REACTING;                   \
             eer_staging(&name.instance, &next_props);                          \
         }                                                                      \
     }
