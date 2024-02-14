@@ -20,5 +20,6 @@ add_subdirectory(Menu)
 # 3D
 add_subdirectory(Window)
 add_subdirectory(Camera)
+add_subdirectory(Cursor)
 add_subdirectory(Symbol)
 add_subdirectory(Text)

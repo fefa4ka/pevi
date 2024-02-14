@@ -1,17 +1,18 @@
 
 #include "pevi.h"
 
-struct Pevi state;
+struct Pevi state = {.ui = {.cursor.size = (Vector3){0.6, 0.15, 0.6}}};
 
 void shell();
 
-struct lr_cell cells[BUFFER_SIZE];
+struct lr_cell     cells[BUFFER_SIZE];
 struct linked_ring file_buffer;
 
 Clock(clk, &hw(timer), TIMESTAMP);
 Camera_new(cam);
 Window(win, _({"pevi", WINDOW_WIDTH, WINDOW_HEIGHT, &cam.state.camera,
                .on = {.before = render_start, .after = render_end}}));
+Cursor_new(cur);
 Text_new(txt);
 
 
@@ -483,6 +484,7 @@ int main(void)
 
     apply(Camera, cam, _(state.cam));
 
+
     if (drag_mode) {
         cursor_position[current_drag_cursor_index] = cam.state.camera.target;
         cursor_cam_position[current_drag_cursor_index]
@@ -490,29 +492,17 @@ int main(void)
         cursor_cam_up[current_drag_cursor_index] = cam.state.camera.up;
         current_cursor = &cursor_position[current_drag_cursor_index];
     }
-
     current_symbol = false;
 
+
     ClearBackground(RAYWHITE);
-    //    DrawGrid(100, 1.0f);
-    if (state.mode == PEVI_MODE_FREE) {
-        rlPushMatrix();
-        Vector3 pos    = cam.state.camera.target;
-        Vector2 angles = CalculateBillboardAngles(
-            pos, cam.state.camera.position, cam.state.camera.up);
 
-        //            rlTranslatef(pos.x, pos.y, pos.z);
-        //
-        //            rlRotatef(RAD2DEG * angles.x, 0, 1,
-        //                      0); // Rotate around Y-axis (yaw)
-        //            rlRotatef(RAD2DEG * angles.y, 1, 0,
-        //                      0); // Rotate around X-axis (pitch)
+    react(Cursor, cur,
+          _({.is_visible = state.mode == PEVI_MODE_FREE,
+             .pos        = cam.state.camera.target,
+             .size       = state.ui.cursor.size}));
 
-        DrawCube(pos, 0.6f, 0.15f, 0.6f, PURPLE);
-        DrawCubeWires(pos, 0.6f, 0.15f, 0.6f, DARKPURPLE);
-        rlPopMatrix();
-    }
-
+    // Foreach opened buffers (e.g. files, terminals);
 
     if (file_buffer.owners != NULL) {
         struct lr_cell *owner_cell;

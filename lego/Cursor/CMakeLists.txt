@@ -1,12 +1,6 @@
-project(pevi VERSION 1.0
-    DESCRIPTION "eer text editor"
-    LANGUAGES C ASM)
-
-set(SOURCES input.c pemath.c cmd.c)
-set(LIBS Clock Serial Window Camera Cursor Symbol Text Menu lr)
-set(HAL_LIBS timer)
-
-include(../app.cmake)
+project(Cursor VERSION 1.0
+    DESCRIPTION "eer raylib cursor"
+    LANGUAGES C)
 
 # Dependencies
 set(RAYLIB_VERSION 5.0)
@@ -26,5 +20,8 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
     add_subdirectory(${raylib_SOURCE_DIR} ${raylib_BINARY_DIR})
   endif()
 endif()
+
+set(LIBS lr)
+include(../component.cmake)
 
 target_link_libraries(${PROJECT_NAME} raylib)

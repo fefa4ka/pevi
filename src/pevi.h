@@ -4,6 +4,7 @@
 #include <Clock.h>
 #include <Menu.h>
 #include <Serial.h>
+#include <Cursor.h>
 #include <Symbol.h>
 #include <Text.h>
 #include <Window.h>
@@ -30,7 +31,7 @@ struct Plane {
 	Color tint;
 };
 
-struct Cursor {
+struct PeviCursor {
 	struct Plane *plane;			    
 	struct linked_ring *buffer; // Text buffer
 	struct lr_cell *cell;  // selected cell
@@ -38,9 +39,19 @@ struct Cursor {
 
 struct Selection {
 	size_t cursor_nr;
-	struct Cursor *cursors;
+	struct PeviCursor *cursors;
 };
 
+
+struct UI {
+ struct {
+	Vector3 size;
+	struct { 
+	Color body;
+	Color wire;
+	} color;
+ } cursor;
+};
 // cursor_buffer
 // owner -> file 
 // cell -> struct Cursor
@@ -56,10 +67,12 @@ struct Pevi {
     struct linked_ring cmd_buffer;
     struct lr_cell  cmd_cells[COMMAND_BUFFER_SIZE];
 
-    struct Cursor cursor;
+    struct PeviCursor cursor;
     struct Selection selection;
 
     struct Plane planes[PLANE_BUFFER_SIZE];
+
+    struct UI ui;
 };
 
 
