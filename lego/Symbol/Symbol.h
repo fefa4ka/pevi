@@ -17,6 +17,7 @@ typedef struct {
     bool backface;
     Vector3 pos;
     Vector3 absolute_pos;
+    Vector2 angles;
     bool is_selected;
     Camera *camera;
     struct {

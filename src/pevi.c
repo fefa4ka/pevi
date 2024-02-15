@@ -161,7 +161,7 @@ void enable_edit_mode(void *args)
     state.cam.is_movable = false;
 
 
-    cam.state.camera.projection = CAMERA_ORTHOGRAPHIC;
+    state.cam.projection = CAMERA_ORTHOGRAPHIC;
     if (state.cursor.cell) {
         return;
     }
@@ -357,7 +357,7 @@ void edit_mode_process()
         state.mode                  = PEVI_MODE_FREE;
         state.cursor.plane          = 0;
         state.cam.is_movable        = true;
-        cam.state.camera.projection = CAMERA_PERSPECTIVE;
+        state.cam.projection = CAMERA_PERSPECTIVE;
 
 
     } else if (IsKeyPressed(KEY_ENTER)) {
@@ -442,7 +442,9 @@ int main(void)
     lr_result_t result = lr_init(&file_buffer, BUFFER_SIZE, cells);
     result = lr_init(&state.cmd_buffer, COMMAND_BUFFER_SIZE, state.cmd_cells);
 
-    state.cam = (Camera_props_t){(Vector3){10.0f, 0.0f, 1.0f},
+    Font fnt = GetFontDefault();
+
+    state.cam = (Camera_props_t){(Vector3){55.0f, 0.0f, 1.0f},
                                  (Vector3){0.0f, 0.0f, 0.0f},
                                  (Vector3){0.0f, 1.0f, 0.0f},
                                  45.0f,
@@ -450,11 +452,8 @@ int main(void)
                                  CAMERA_FREE,
                                  true};
 
-    //    Font fnt = LoadFontEx("FiraCode-Regular.ttf", 96, 0, 0);
-    Font fnt = GetFontDefault();
 
     ignite(clk, win);
-
     apply(Camera, cam, _(state.cam));
 
 
@@ -485,7 +484,6 @@ int main(void)
              owner_cell >= file_buffer.owners; owner_cell--) {
 
 
-            rlPushMatrix();
 
             lr_read_string(&file_buffer, text, lr_owner(owner_cell->data));
 
@@ -501,12 +499,6 @@ int main(void)
                 pln.tint = tint;
             }
 
-            rlTranslatef(pln.pos.x, pln.pos.y, pln.pos.z);
-
-            rlRotatef(RAD2DEG * pln.angles.x, 0, 1,
-                      0); // Rotate around Y-axis (yaw)
-            rlRotatef(RAD2DEG * pln.angles.y, 1, 0,
-                      0); // Rotate around X-axis (pitch)
 
 
             react(Text, txt,
@@ -516,11 +508,23 @@ int main(void)
                      .content      = text,
                      .owner        = owner_cell->data,
                      .font_size    = 12.0f,
-                     .pos          = {0},
-                     .absolute_pos = pln.pos,
+		     .angles = pln.angles,
+                     .pos = pln.pos,
                      .camera       = &cam.state.camera,
                      .bg_color     = pln.tint,
                      .on           = {.hover = on_dot_hover}}));
+ // react(Text, txt,
+ //                 _({.font         = GetFontDefault(),
+ //                    .spacing      = 0.6f,
+ //                    .tint         = BLACK,
+ //                    .content      = text,
+ //                    .owner        = owner_cell->data,
+ //                    .font_size    = 12.0f,
+ //       	     .angles = {0,0},
+ //                    .pos = pln.pos,
+ //                    .camera       = &cam.state.camera,
+ //                    .bg_color     = pln.tint,
+ //                    .on           = {.hover = on_dot_hover}}));
 
             if (state.mode == PEVI_MODE_EDIT
                 && (size_t)state.cursor.plane == (size_t)owner_cell->data) {
@@ -531,7 +535,6 @@ int main(void)
                 DrawCubeWires(cursor_pos, 0.6f, 0.15f, 0.15f, DARKPURPLE);
             }
 
-            rlPopMatrix();
         }
     }
 

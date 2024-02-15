@@ -16,8 +16,8 @@ typedef struct {
     float   font_size;
     float   spacing;
     float   line_spacing;
+    Vector2 angles;
     Vector3 pos;
-    Vector3 absolute_pos;
     Camera *camera;
     bool is_selected;
     struct {

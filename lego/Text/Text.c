@@ -27,9 +27,8 @@ SHOULD_UPDATE(Text)
     state->size
         = MeasureText3D(GetFontDefault(), props->content, props->font_size,
                         props->spacing, props->line_spacing);
-    state->pos.x = -1 * state->size.x / 2.0f + props->pos.x;
-    state->pos.y = props->pos.y;
-    state->pos.z = props->pos.z;
+    state->pos = (Vector3){0};
+
     return true;
 }
 
@@ -38,7 +37,6 @@ SHOULD_UPDATE(Text)
 ///
 WILL_UPDATE(Text)
 {
-
 
     //    DrawCubeWiresV((Vector3){ state->pos.x + state->size.x, state->pos.y,
     //    state->pos.z + state->size.z/2}, state->size, RED);
@@ -52,9 +50,15 @@ RELEASE(Text)
     Font font = props->font;
     Symbol_new(dot);
 
+    rlPushMatrix();
+    rlTranslatef(props->pos.x, props->pos.y, props->pos.z);
 
-    DrawCubeV((Vector3){state->pos.x + state->size.x / 2, state->pos.y - 0.15,
-                        state->pos.z + state->size.z / 2},
+    rlRotatef(RAD2DEG * props->angles.y, 0, 1,
+              0); // Rotate around Y-axis (yaw)
+    rlRotatef(RAD2DEG * props->angles.x, 1, 0,
+              0); // Rotate around X-axis (pitch)
+
+    DrawCubeV((Vector3){state->size.x / 2, -0.15, state->size.z / 2},
               state->size, props->bg_color);
 
     eer_init(dot);
@@ -62,7 +66,7 @@ RELEASE(Text)
         if (props->content[index] == '\n') {
 
             state->pos.z += dot.state.size.z;
-            state->pos.x = -1 * state->size.x / 2.0f + props->pos.x;
+            state->pos.x = 0;
         } else if (props->content[index] == '\t') {
             state->pos.x += props->spacing * 2;
         } else {
@@ -72,14 +76,16 @@ RELEASE(Text)
                      .content       = &props->content[index],
                      .font_size     = props->font_size,
                      .pos           = state->pos,
-                     .absolute_pos  = props->absolute_pos,
+                     .angles        = props->angles,
+                     .absolute_pos  = props->pos,
                      .camera        = props->camera,
                      .on            = {.hover = props->on.hover},
                      .owner         = props->owner,
                      .content_index = index}));
 
 
-            state->pos.x += dot.state.size.x + props->spacing / font.baseSize * state->scale;
+            state->pos.x += dot.state.size.x
+                            + props->spacing / font.baseSize * state->scale;
             // if (font.glyphs[index].advanceX != 0)
             //                 state->pos.x  += (font.glyphs[index].advanceX +
             //                 props->spacing)
@@ -92,10 +98,14 @@ RELEASE(Text)
             //                        / (float)font.baseSize * dot.state.scale;
         }
     }
+
+    rlPopMatrix();
 }
 
 DID_MOUNT_SKIP(Text);
-DID_UPDATE_SKIP(Text);
+DID_UPDATE(Text){
+
+};
 
 // Measure a text in 3D. For some reason `MeasureTextEx()` just doesn't seem to
 // work so i had to use this instead.
@@ -134,9 +144,9 @@ static Vector3 MeasureText3D(Font font, const char *text, float fontSize,
                 textWidth += (font.glyphs[index].advanceX)
                              / (float)font.baseSize * scale;
             else
-                textWidth += (font.recs[index].width 
-                              + font.glyphs[index].offsetX)
-                             / (float)font.baseSize * scale;
+                textWidth
+                    += (font.recs[index].width + font.glyphs[index].offsetX)
+                       / (float)font.baseSize * scale;
         } else {
             if (tempTextWidth < textWidth)
                 tempTextWidth = textWidth;

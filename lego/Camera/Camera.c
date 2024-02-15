@@ -60,6 +60,10 @@ SHOULD_UPDATE(Camera)
                               dy, // Rotation: pitch
                               0},
                     GetMouseWheelMove() * 2.0f); // Move to target (zoom)
+
+    state->camera.fovy = next_props->fovy;
+    state->camera.projection = next_props->projection;
+
     return true;
 }
 

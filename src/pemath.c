@@ -17,7 +17,7 @@ Vector2 CalculateBillboardAngles(Vector3 objectPosition, Vector3 cameraPosition,
 
     float pitch = asinf(direction.y);
 
-    return (Vector2){yaw, pitch};
+    return (Vector2){pitch, yaw};
 }
 
 // Generates a nice color with a random hue
