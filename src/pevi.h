@@ -73,6 +73,8 @@ struct Pevi {
     struct linked_ring cmd_buffer;
     struct lr_cell     cmd_cells[COMMAND_BUFFER_SIZE];
 
+    struct linked_ring *file_buffer;
+
     struct PeviCursor cursor;
     struct Selection  selection;
 

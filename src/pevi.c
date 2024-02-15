@@ -50,8 +50,6 @@ Menu(tty, _({.menu    = commands,
 char text[BUFFER_SIZE] = {0}; //{'p', 'e', 'v', 'i', '\0'};
 
 
-#define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
-
 void on_dot_hover(eer_t *symbol)
 {
 
@@ -181,146 +179,6 @@ void   enable_drag_mode(void *args)
     }
 }
 
-void run_shell(char *command)
-{
-    FILE *fp;
-    char  path[1035];
-
-    /* Open the command for reading. */
-    fp = popen(command, "r");
-    if (fp == NULL) {
-
-        lr_put(&file_buffer, (char)'\n', lr_owner(state.cursor.plane));
-
-        lr_put_string(&file_buffer, "Failed to run command\n",
-                      lr_owner(state.cursor.plane));
-    }
-
-    /* Read the output a line at a time - output it. */
-    while (fgets(path, sizeof(path), fp) != NULL) {
-        lr_put_string(&file_buffer, path, lr_owner(state.cursor.plane));
-    }
-
-    /* close */
-    pclose(fp);
-    state.cam.is_movable = true;
-    state.mode           = PEVI_MODE_FREE;
-}
-
-void run_shell_interactive(char *command)
-{
-    int   fd[2]; // File descriptors for pipe
-    pid_t pid;
-    char  buffer[BUFSIZ];
-
-    // Create a pipe
-    if (pipe(fd) == -1) {
-        perror("pipe");
-        return;
-    }
-
-    // Fork a child process
-    pid = fork();
-    if (pid == -1) {
-        perror("fork");
-        return;
-    }
-
-    if (pid == 0) {   // Child process
-        close(fd[0]); // Close reading end of pipe
-
-        // Redirect stdout to the writing end of the pipe
-        dup2(fd[1], STDOUT_FILENO);
-        close(fd[1]);
-
-        // Execute the command
-        execlp("sh", "sh", "-c", command, NULL);
-        perror("execlp");
-    } else {          // Parent process
-        close(fd[1]); // Close writing end of pipe
-
-        // Read from the reading end of the pipe
-        ssize_t bytes_read;
-        while ((bytes_read = read(fd[0], buffer, BUFSIZ)) > 0) {
-            // Process the data, e.g., display it to the user
-            write(STDOUT_FILENO, buffer, bytes_read);
-            for (ssize_t i = 0; i < bytes_read; i++) {
-                // Write each character individually
-                lr_put(&file_buffer, (char)buffer[i],
-                       lr_owner(state.cursor.plane));
-            }
-        }
-
-        close(fd[0]); // Close reading end of pipe
-    }
-}
-
-
-void run_command_interactively(char *command)
-{
-    FILE *fp;
-    char  buffer[BUFSIZ];
-
-    // Open the command for reading
-    fp = popen(command, "r");
-    if (fp == NULL) {
-        perror("popen");
-        return;
-    }
-
-    // Read from the command and write to stdout
-    fd_set fds;
-    int    fd = fileno(fp);
-    while (1) {
-        FD_ZERO(&fds);
-        FD_SET(fd, &fds);
-        FD_SET(STDIN_FILENO, &fds);
-
-        // Use select() to wait for data on either stdin or command output
-        if (select(fd + 1, &fds, NULL, NULL, NULL) == -1) {
-            perror("select");
-            break;
-        }
-
-        // If data is available on stdin, read it and write to the command
-        if (FD_ISSET(STDIN_FILENO, &fds)) {
-            ssize_t bytes_read = read(STDIN_FILENO, buffer, BUFSIZ);
-            if (bytes_read <= 0)
-                break;
-
-            for (ssize_t i = 0; i < bytes_read; i++) {
-                // Write each character individually
-                lr_put(&file_buffer, (char)buffer[i],
-                       lr_owner(state.cursor.plane));
-            }
-            // if (write(fd, buffer, bytes_read) == -1) {
-            //     perror("write");
-            //     break;
-            // }
-        }
-
-        // If data is available on the command output, read it and write to
-        // stdout
-        if (FD_ISSET(fd, &fds)) {
-            ssize_t bytes_read = read(fd, buffer, BUFSIZ);
-            if (bytes_read <= 0)
-                break;
-
-            for (ssize_t i = 0; i < bytes_read; i++) {
-                // Write each character individually
-                lr_put(&file_buffer, (char)buffer[i],
-                       lr_owner(state.cursor.plane));
-            }
-            //   if (write(STDOUT_FILENO, buffer, bytes_read) == -1) {
-            //       perror("write");
-            //       break;
-            //   }
-        }
-    }
-
-    // Close the file stream
-    pclose(fp);
-}
 
 void enable_execute_mode(void *args)
 {
@@ -354,9 +212,9 @@ void edit_mode_process()
         int data;
         lr_pop(&file_buffer, &data, lr_owner(state.cursor.plane));
     } else if (IsKeyPressed(KEY_ESCAPE)) {
-        state.mode                  = PEVI_MODE_FREE;
-        state.cursor.plane          = 0;
-        state.cam.is_movable        = true;
+        state.mode           = PEVI_MODE_FREE;
+        state.cursor.plane   = 0;
+        state.cam.is_movable = true;
         state.cam.projection = CAMERA_PERSPECTIVE;
 
 
@@ -378,51 +236,6 @@ void edit_mode_process()
     }
 }
 
-
-void plane_open(void *command)
-{
-    FILE           *file;
-    char           *filename[COMMAND_BUFFER_SIZE];
-    struct lr_cell *owner_cell;
-    sscanf(command, "%*s %s", &filename);
-
-    file = fopen(filename, "r");
-    if (file == NULL) {
-        fprintf(stderr, "Error opening file %s\n", filename);
-        return;
-    }
-
-    enable_edit_mode(0);
-    /* Read the output a line at a time - output it. */
-    while (fgets(text, sizeof(text), file) != NULL) {
-        lr_put_string(&file_buffer, text, lr_owner(state.cursor.plane));
-    }
-
-    fclose(file);
-}
-
-void buffer_save(void *command)
-{
-    FILE           *file;
-    char           *filename[COMMAND_BUFFER_SIZE];
-    struct lr_cell *owner_cell;
-    sscanf(command, "%*s %s", &filename);
-
-    file = fopen(filename, "w");
-    if (file == NULL) {
-        fprintf(stderr, "Error opening file %s\n", filename);
-        return;
-    }
-
-    for (owner_cell = lr_last_cell(&file_buffer);
-         owner_cell >= file_buffer.owners; owner_cell--) {
-
-        lr_read_string(&file_buffer, text, lr_owner(owner_cell->data));
-        fprintf(file, "%s\n", text);
-    }
-
-    fclose(file);
-}
 
 void shell()
 {
@@ -452,6 +265,7 @@ int main(void)
                                  CAMERA_FREE,
                                  true};
 
+    state.file_buffer = &file_buffer;
 
     ignite(clk, win);
     apply(Camera, cam, _(state.cam));
@@ -468,12 +282,9 @@ int main(void)
 
     ClearBackground(RAYWHITE);
 
-    react(Cursor, cur,
-          _({
-              .is_visible = state.mode == PEVI_MODE_FREE,
-              .pos        = cam.state.camera.target,
-              .size       = state.ui.cursor.size,
-          }));
+
+    struct Plane cam_plane  = camera_plane(&cam.state.camera);
+    Vector3      cursor_pos = {0};
 
     // Foreach opened buffers (e.g. files, terminals);
 
@@ -482,7 +293,6 @@ int main(void)
 
         for (owner_cell = lr_last_cell(&file_buffer);
              owner_cell >= file_buffer.owners; owner_cell--) {
-
 
 
             lr_read_string(&file_buffer, text, lr_owner(owner_cell->data));
@@ -495,49 +305,43 @@ int main(void)
             if (state.mode == PEVI_MODE_EDIT
                 && (struct Plane *)state.cursor.plane
                        == (struct Plane *)owner_cell->data) {
-                pln      = camera_plane(&cam.state.camera);
+                pln      = cam_plane;
                 pln.tint = tint;
             }
 
 
-
             react(Text, txt,
-                  _({.font         = GetFontDefault(),
-                     .spacing      = 0.6f,
-                     .tint         = BLACK,
-                     .content      = text,
-                     .owner        = owner_cell->data,
-                     .font_size    = 12.0f,
-		     .angles = pln.angles,
-                     .pos = pln.pos,
-                     .camera       = &cam.state.camera,
-                     .bg_color     = pln.tint,
-                     .on           = {.hover = on_dot_hover}}));
- // react(Text, txt,
- //                 _({.font         = GetFontDefault(),
- //                    .spacing      = 0.6f,
- //                    .tint         = BLACK,
- //                    .content      = text,
- //                    .owner        = owner_cell->data,
- //                    .font_size    = 12.0f,
- //       	     .angles = {0,0},
- //                    .pos = pln.pos,
- //                    .camera       = &cam.state.camera,
- //                    .bg_color     = pln.tint,
- //                    .on           = {.hover = on_dot_hover}}));
+                  _({.font      = GetFontDefault(),
+                     .spacing   = 0.6f,
+                     .tint      = BLACK,
+                     .content   = text,
+                     .owner     = owner_cell->data,
+                     .font_size = 12.0f,
+                     .angles    = pln.angles,
+                     .pos       = pln.pos,
+                     .camera    = &cam.state.camera,
+                     .bg_color  = pln.tint,
+                     .on        = {.hover = on_dot_hover}}));
 
             if (state.mode == PEVI_MODE_EDIT
                 && (size_t)state.cursor.plane == (size_t)owner_cell->data) {
-                txt.state.pos.z += 1.f;
-                Vector3 cursor_pos = txt.state.pos;
-                cursor_pos.x += 0.5f;
-                DrawCube(cursor_pos, 0.6f, 0.15f, 0.15f, PURPLE);
-                DrawCubeWires(cursor_pos, 0.6f, 0.15f, 0.15f, DARKPURPLE);
+                cursor_pos.x = txt.state.pos.x + 0.2;
+                cursor_pos.y = txt.state.pos.y;
+                cursor_pos.z = txt.state.pos.z + txt.state.size.z;
             }
-
         }
     }
 
+
+    react(Cursor, cur,
+          _({
+              .is_visible   = true,
+              .pos          = cursor_pos,
+              .absolute_pos = cam.state.camera.target,
+              .size         = state.ui.cursor.size,
+              .angles
+              = state.mode == PEVI_MODE_EDIT ? cam_plane.angles : (Vector2){0},
+          }));
 
     halt(0);
 

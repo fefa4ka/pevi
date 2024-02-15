@@ -40,7 +40,6 @@ lr_result_t lr_init(struct linked_ring *lr, size_t size, struct lr_cell *cells)
     return LR_OK;
 }
 
-#define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
 
 /* Lock the mutex if lock function provided, no op otherwise */
 #define lock(lr)                                                               \

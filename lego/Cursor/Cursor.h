@@ -9,7 +9,9 @@
 typedef struct {
     bool is_visible;
     Vector3 pos;
+    Vector3 absolute_pos;
     Vector3 size;
+    Vector2 angles;
 } Cursor_props_t;
 
 typedef struct {

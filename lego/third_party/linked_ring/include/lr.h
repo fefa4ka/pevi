@@ -102,6 +102,7 @@ size_t lr_count(struct linked_ring *lr);
 #define lr_owners_count(lr) ((lr)->owners == NULL ? 0 : (lr)->cells + (lr)->size - (lr)->owners)
 #define lr_exists(lr, owner)      lr_count_limited_owned(lr, 1, owner)
 #define lr_count_owned(lr, owner) lr_count_limited_owned(lr, 0, owner)
+#define lr_last_cell(lr) ((lr)->cells + (lr)->size - 1)
 
 lr_result_t lr_init(struct linked_ring *lr, size_t size,
                     struct lr_cell *cells);
@@ -113,6 +114,8 @@ lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_owner_t owner);
 //lr_result_t lr_put_next(struct linked_ring *lr, lr_cell *cell, lr_data_t data, lr_owner_t owner);
 lr_result_t lr_put_string(struct linked_ring *lr, unsigned char *data,
                            lr_owner_t owner);
+
+lr_result_t lr_read(struct linked_ring *, lr_data_t *, lr_owner_t requested_owner);
 lr_result_t lr_read_string(struct linked_ring *lr, unsigned char *data,
                            lr_owner_t owner);
 

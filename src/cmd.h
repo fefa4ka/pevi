@@ -16,6 +16,9 @@ void buffer_save(void *command);
 void buffer_dump(void *command);
 void plane_open(void *command);
 
+
+void run_command_interactively(char *command);
+
 void on_command(eer_t *menu);
 void on_command_not_found(eer_t *menu);
 
