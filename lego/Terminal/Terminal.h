@@ -27,6 +27,11 @@ typedef struct {
     Shader shader;
     Color tint;
     Color bg_color;
+
+    struct {
+        void (*hover)(eer_t *instance);
+        void (*click)(eer_t *instance);
+    } on;
 } Terminal_props_t;
 
 typedef struct {

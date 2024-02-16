@@ -22,6 +22,7 @@ Menu_command_t shortcuts[] = {{":", enable_command_mode},
                               {"i", enable_edit_mode},
                               {"e", enable_execute_mode},
                               {"m", enable_drag_mode},
+                              {"x", plane_clean},
                               {0}};
 Menu(skm, _({.menu    = shortcuts,
              .command = state.key_buffer,
@@ -393,6 +394,7 @@ int main(void)
                           .camera    = &cam.state.camera,
                           .bg_color  = pln.tint,
                           .shader    = win.state.shader,
+                                 .on        = {.hover = on_dot_hover}
 
                       }));
             }

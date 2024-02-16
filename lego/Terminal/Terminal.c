@@ -1,6 +1,8 @@
 #include "Terminal.h"
 #include <Text.h>
 #include <eers.h>
+#include <raymath.h>
+
 void swap_pollfd(struct pollfd *a, struct pollfd *b)
 {
     if (a == b)
@@ -49,6 +51,7 @@ WILL_UPDATE(Terminal)
 
     struct pollfd *curr = &state->_fds[1];
 
+
     if (state->_fds[1].revents & POLLIN) { // Input available on stdin
         ssize_t bytes_read = read(state->fd, buffer, BUFSIZ);
         if (bytes_read <= 0)
@@ -81,10 +84,20 @@ RELEASE(Terminal)
              .pos       = props->pos,
              .camera    = props->camera,
              .bg_color  = props->bg_color,
-             .shader    = props->shader}));
+             .shader    = props->shader, 
+	     .on.hover = props->on.hover,
+	     }));
 
-    Vector3 pos = props->pos;
-    pos.z += txt.state.size.z;
+
+    Matrix transform;
+    transform = MatrixTranslate(props->pos.x, props->pos.y, props->pos.z);
+    transform = MatrixMultiply(MatrixRotateY(props->angles.y), transform);
+    transform = MatrixMultiply(MatrixRotateX(props->angles.x), transform);
+    transform = MatrixMultiply(
+        MatrixTranslate(0, 0, txt.state.size.z + 0.15f),
+        transform);
+    Vector3 finalPosition = {0, 0, 0};
+    finalPosition         = Vector3Transform(finalPosition, transform);
 
     char text[1024];
     lr_read_string(props->buffer, text, lr_owner(props->owner));
@@ -97,10 +110,12 @@ RELEASE(Terminal)
              .owner     = props->owner,
              .font_size = 24.,
              .angles    = props->angles,
-             .pos       = pos,
+             .pos       = finalPosition,
              .camera    = props->camera,
              .bg_color  = props->bg_color,
-             .shader    = props->shader}));
+             .shader    = props->shader,
+	     .on.hover = props->on.hover,
+	     }));
 }
 
 DID_MOUNT_SKIP(Terminal);

@@ -65,6 +65,12 @@ void buffer_save(void *command)
     fclose(file);
 }
 
+void plane_clean(void *command)
+{
+	lr_data_t data;
+	while(lr_get(state.file_buffer, &data, lr_owner(state.cursor.plane)) == OK);
+}
+
 void plane_open(void *command)
 {
     FILE           *file;
