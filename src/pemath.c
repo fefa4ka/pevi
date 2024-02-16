@@ -9,13 +9,17 @@ Vector2 CalculateBillboardAngles(Vector3 objectPosition, Vector3 cameraPosition,
     // Calculate yaw (horizontal rotation)
     float yaw = atan2f(direction.x, direction.z);
 
-    // Calculate pitch (vertical rotation)
-    // Adjust the direction with respect to camera's up vector
-    Vector3 right = Vector3CrossProduct(cameraUp, direction);
-    direction
-        = Vector3CrossProduct(direction, right); // Re-orthogonalize direction
 
-    float pitch = asinf(direction.y);
+    // Calculate pitch (vertical rotation)
+    // Find the angle between the direction vector and the vector pointing
+    // directly up
+    float pitch
+        = acosf(Vector3DotProduct(direction, (Vector3){0.0f, 1.0f, 0.0f}));
+
+    // Adjust pitch based on the camera's up vector
+    float cameraUpAngle = atan2f(cameraUp.x, cameraUp.y);
+    pitch *= cosf(cameraUpAngle);
+
 
     return (Vector2){pitch, yaw};
 }

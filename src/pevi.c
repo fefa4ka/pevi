@@ -275,7 +275,7 @@ int main(void)
                                  (Vector3){0.0f, 1.0f, 0.0f},
                                  45.0f,
                                  CAMERA_PERSPECTIVE,
-                                 CAMERA_FREE,
+                                 CAMERA_THIRD_PERSON,
                                  true};
 
     //    state.file_buffer = &file_buffer;
@@ -347,7 +347,7 @@ int main(void)
                                  .on        = {.hover = on_dot_hover}}));
                     }
 
-       
+
                     if (state.mode == PEVI_MODE_EDIT
                         && (size_t)state.cursor.plane
                                == (size_t)owner_cell->data) {
@@ -358,37 +358,44 @@ int main(void)
                 }
             }
 
-             if (buffer->type == PEVI_BUF_TERMINAL) {
-		        struct Plane pln;
-		        struct Plane *pln_ptr;
-		        Color        tint;
+            if (buffer->type == PEVI_BUF_TERMINAL) {
+                struct Plane  pln;
+                struct Plane *pln_ptr;
+                Color         tint;
 
-			if(buffer->lr.owners) {
-				pln_ptr=(struct Plane *)buffer->lr.owners->data;
-		 }	else{
-		    state.planes[state.plane_nr] = cam_plane;
-		    pln_ptr = &state.planes[state.plane_nr];
-		    state.plane_nr += 1;
-		 }
-			pln= *pln_ptr;
-                        shoot(Terminal, trm,
-                              _({
-                                  .fp        = buffer->fp,
-                                  .command   = buffer->path,
-                                  .buffer    = &buffer->lr,
-                                  .font      = win.state.font,
-                                  .spacing   = 0.6f,
-                                  .tint      = BLACK,
-                                  .owner     = lr_owner(pln_ptr),
-                                  .font_size = 24.,
-                                  .angles    = pln.angles,
-                                  .pos       = pln.pos,
-                                  .camera    = &cam.state.camera,
-                                  .bg_color  = pln.tint,
-                                  .shader    = win.state.shader,
+                if (buffer->lr.owners) {
+                    pln_ptr = (struct Plane *)buffer->lr.owners->data;
+                } else {
+                    state.planes[state.plane_nr] = cam_plane;
+                    pln_ptr = &state.planes[state.plane_nr];
+                    state.plane_nr += 1;
+                }
+                pln = *pln_ptr;
 
-                              }));
-                    }
+    if (state.mode == PEVI_MODE_DRAG) {
+        struct Plane pln;
+        pln                        = camera_plane(&cam.state.camera);
+        state.cursor.plane->pos    = pln.pos;
+        state.cursor.plane->angles = pln.angles;
+    }
+                shoot(Terminal, trm,
+                      _({
+                          .fp        = buffer->fp,
+                          .command   = buffer->path,
+                          .buffer    = &buffer->lr,
+                          .font      = win.state.font,
+                          .spacing   = 0.6f,
+                          .tint      = BLACK,
+                          .owner     = lr_owner(pln_ptr),
+                          .font_size = 24.,
+                          .angles    = pln.angles,
+                          .pos       = pln.pos,
+                          .camera    = &cam.state.camera,
+                          .bg_color  = pln.tint,
+                          .shader    = win.state.shader,
+
+                      }));
+            }
 
 
             buffer = buffer->next;

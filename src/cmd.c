@@ -244,6 +244,8 @@ void on_command_not_found(eer_t *menu)
 {
     state.cursor.cell = 0;
 
+    struct linked_ring *prev_buffer = state.file_buffer;
+
     struct Buffer *buffer;
     buffer       = buffer_init(BUFFER_SIZE);
     buffer->type = PEVI_BUF_TERMINAL;
@@ -260,6 +262,7 @@ void on_command_not_found(eer_t *menu)
 
     *state.command = 0;
 
+    state.file_buffer = prev_buffer;
     state.mode           = PEVI_MODE_FREE;
     state.cursor.plane   = 0;
     state.cam.is_enabled = true;
