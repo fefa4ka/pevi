@@ -10,7 +10,8 @@
 typedef struct {
     Font font;
     Color tint;
-    char    *content;
+    char *content;
+    void *parent;
     lr_owner_t owner;
     size_t content_index;
     float   font_size;

@@ -5,8 +5,8 @@ struct Pevi state = {.ui = {.cursor.size = (Vector3){0.6, 0.15, 0.6}}};
 
 void shell();
 
-struct lr_cell     cells[BUFFER_SIZE];
-struct linked_ring file_buffer;
+// struct lr_cell     cells[BUFFER_SIZE];
+// struct linked_ring file_buffer;
 
 Clock(clk, &hw(timer), TIMESTAMP);
 Camera_new(cam);
@@ -56,6 +56,7 @@ void on_dot_hover(eer_t *symbol)
     eer_self(Symbol, symbol);
 
     if (state.mode == PEVI_MODE_FREE) {
+        state.file_buffer = (struct linked_ring*)(struct Plane *)self->props.parent;
         state.cursor.plane = (struct Plane *)self->props.owner;
         state.cursor.cell  = (struct lr_cell *)self->props.owner;
     }
@@ -160,6 +161,9 @@ void enable_edit_mode(void *args)
     state.mode           = PEVI_MODE_EDIT;
     state.cam.is_enabled = false;
 
+    if(!state.file_buffer) {
+	    state.file_buffer = buffer_init(BUFFER_SIZE);
+    }
 
     state.cam.projection = CAMERA_ORTHOGRAPHIC;
     if (state.cursor.cell) {
@@ -184,10 +188,12 @@ void   enable_drag_mode(void *args)
 
 void enable_execute_mode(void *args)
 {
+
+        struct linked_ring *buffer = state.file_buffer;
     if (state.cursor.cell) {
         char command[COMMAND_BUFFER_SIZE];
 
-        lr_read_string(&file_buffer, command, lr_owner(state.cursor.plane));
+        lr_read_string(buffer, command, lr_owner(state.cursor.plane));
         run_command_interactively(command);
     }
 }
@@ -197,6 +203,8 @@ void edit_mode_process()
 {
     int key;
     int r = Serial_read(&input, &key);
+
+        struct linked_ring *file_buffer = state.file_buffer;
     if (r) {
         key = 0;
     }
@@ -204,7 +212,7 @@ void edit_mode_process()
     while (key > 0) {
         // NOTE: Only allow keys in range [32..125]
         if ((key >= 32) && (key <= 125)) {
-            lr_put(&file_buffer, (char)key, lr_owner(state.cursor.plane));
+            lr_put(file_buffer, (char)key, lr_owner(state.cursor.plane));
         }
 
         key = GetCharPressed(); // Check next character in the queue
@@ -212,7 +220,7 @@ void edit_mode_process()
 
     if (IsKeyPressed(KEY_BACKSPACE)) {
         int data;
-        lr_pop(&file_buffer, &data, lr_owner(state.cursor.plane));
+        lr_pop(file_buffer, &data, lr_owner(state.cursor.plane));
     } else if (IsKeyPressed(KEY_ESCAPE)) {
         state.mode           = PEVI_MODE_FREE;
         state.cursor.plane   = 0;
@@ -225,15 +233,15 @@ void edit_mode_process()
         int len = TextLength(text);
         if (len < sizeof(text) - 1) {
             char command[COMMAND_BUFFER_SIZE];
-            lr_read_string(&file_buffer, command, lr_owner(state.cursor.plane));
-            lr_put(&file_buffer, (char)'\n', lr_owner(state.cursor.plane));
+            lr_read_string(file_buffer, command, lr_owner(state.cursor.plane));
+            lr_put(file_buffer, (char)'\n', lr_owner(state.cursor.plane));
             //    run_shell(command);
         }
     } else if (IsKeyPressed(KEY_TAB)) {
         // handle newline
         int len = TextLength(text);
         if (len < sizeof(text) - 1) {
-            lr_put(&file_buffer, (char)'\t', lr_owner(state.cursor.plane));
+            lr_put(file_buffer, (char)'\t', lr_owner(state.cursor.plane));
         }
     }
 }
@@ -251,10 +259,10 @@ void shell()
     }
 }
 
-
 int main(void)
 {
-    lr_result_t result = lr_init(&file_buffer, BUFFER_SIZE, cells);
+    lr_result_t result;
+    //= lr_init(&file_buffer, BUFFER_SIZE, cells);
     result = lr_init(&state.cmd_buffer, COMMAND_BUFFER_SIZE, state.cmd_cells);
 
     Font fnt = GetFontDefault();
@@ -267,7 +275,7 @@ int main(void)
                                  CAMERA_FREE,
                                  true};
 
-    state.file_buffer = &file_buffer;
+    //    state.file_buffer = &file_buffer;
 
 
     // Main loop
@@ -291,60 +299,64 @@ int main(void)
 
     // Foreach opened buffers (e.g. files, terminals);
 
-    if (file_buffer.owners != NULL) {
-        struct lr_cell *owner_cell;
+    for (size_t buf_index = 0; buf_index < state.buffer_nr; buf_index++) {
+        struct linked_ring *file_buffer = state.buffers[buf_index];
 
-        for (owner_cell = lr_last_cell(&file_buffer);
-             owner_cell >= file_buffer.owners; owner_cell--) {
+        if (file_buffer->owners != NULL) {
+            struct lr_cell *owner_cell;
 
-
-            lr_read_string(&file_buffer, text, lr_owner(owner_cell->data));
-
-            struct Plane pln;
-            Color        tint;
-            pln  = *(struct Plane *)owner_cell->data;
-            tint = pln.tint;
-
-            if (state.mode == PEVI_MODE_EDIT
-                && (struct Plane *)state.cursor.plane
-                       == (struct Plane *)owner_cell->data) {
-                pln      = cam_plane;
-                pln.tint = tint;
-            }
+            for (owner_cell = lr_last_cell(file_buffer);
+                 owner_cell >= file_buffer->owners; owner_cell--) {
 
 
-            react(Text, txt,
-                  _({.font      = GetFontDefault(),
-                     .spacing   = 0.6f,
-                     .tint      = BLACK,
-                     .content   = text,
-                     .owner     = owner_cell->data,
-                     .font_size = 12.0f,
-                     .angles    = pln.angles,
-                     .pos       = pln.pos,
-                     .camera    = &cam.state.camera,
-                     .bg_color  = pln.tint,
-                     .on        = {.hover = on_dot_hover}}));
+                lr_read_string(file_buffer, text, lr_owner(owner_cell->data));
 
-            //   react(Terminal, trm,
-            //                  _({
-            //                     .command= text,
-            //                     .angles    = pln.angles,
-            //                     .pos       = pln.pos,
-            //                     .camera    = &cam.state.camera,
-            //                     .bg_color  = pln.tint,
-            //		 }));
-            //
+                struct Plane pln;
+                Color        tint;
+                pln  = *(struct Plane *)owner_cell->data;
+                tint = pln.tint;
 
-            if (state.mode == PEVI_MODE_EDIT
-                && (size_t)state.cursor.plane == (size_t)owner_cell->data) {
-                cursor_pos.x = txt.state.pos.x + 0.2;
-                cursor_pos.y = txt.state.pos.y;
-                cursor_pos.z = txt.state.size.z;
+                if (state.mode == PEVI_MODE_EDIT
+                    && (struct Plane *)state.cursor.plane
+                           == (struct Plane *)owner_cell->data) {
+                    pln      = cam_plane;
+                    pln.tint = tint;
+                }
+
+
+                react(Text, txt,
+                      _({.font      = GetFontDefault(),
+                         .spacing   = 0.6f,
+                         .tint      = BLACK,
+                         .content   = text,
+			 .parent = (void*)file_buffer,
+                         .owner     = owner_cell->data,
+                         .font_size = 12.0f,
+                         .angles    = pln.angles,
+                         .pos       = pln.pos,
+                         .camera    = &cam.state.camera,
+                         .bg_color  = pln.tint,
+                         .on        = {.hover = on_dot_hover}}));
+
+                //   react(Terminal, trm,
+                //                  _({
+                //                     .command= text,
+                //                     .angles    = pln.angles,
+                //                     .pos       = pln.pos,
+                //                     .camera    = &cam.state.camera,
+                //                     .bg_color  = pln.tint,
+                //		 }));
+                //
+
+                if (state.mode == PEVI_MODE_EDIT
+                    && (size_t)state.cursor.plane == (size_t)owner_cell->data) {
+                    cursor_pos.x = txt.state.pos.x + 0.2;
+                    cursor_pos.y = txt.state.pos.y;
+                    cursor_pos.z = txt.state.size.z;
+                }
             }
         }
     }
-
 
     react(Cursor, cur,
           _({

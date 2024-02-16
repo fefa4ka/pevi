@@ -15,6 +15,19 @@ void set_fovy(void *fovy_str)
 
 void print_fps(void *arg) { state.is_fps_visible = !state.is_fps_visible; }
 
+struct linked_ring *buffer_init(size_t size)
+{
+    size_t              index  = state.buffer_nr;
+    struct linked_ring *buffer = malloc(sizeof(struct linked_ring));
+    struct lr_cell     *cells  = malloc(sizeof(struct lr_cell) * size);
+
+    lr_result_t result = lr_init(buffer, BUFFER_SIZE, cells);
+    state.buffers[index] = buffer;
+    state.buffer_nr += 1;
+
+    return buffer;
+}
+
 void buffer_save(void *command)
 {
     FILE           *file;
@@ -53,6 +66,7 @@ void plane_open(void *command)
         return;
     }
 
+    state.file_buffer  =buffer_init(BUFFER_SIZE);
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
     while (fgets(text, sizeof(text), file) != NULL) {

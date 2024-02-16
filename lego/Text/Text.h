@@ -12,6 +12,7 @@ typedef struct {
     Color tint;
     Color bg_color;
     char   *content;
+    void *parent;
     lr_owner_t owner;
     float   font_size;
     float   spacing;

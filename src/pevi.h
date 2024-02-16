@@ -1,4 +1,4 @@
-#pragma once
+#pragma oncepev
 
 #include <Camera.h>
 #include <Clock.h>
@@ -74,6 +74,10 @@ struct Pevi {
     struct linked_ring cmd_buffer;
     struct lr_cell     cmd_cells[COMMAND_BUFFER_SIZE];
 
+    size_t buffer_nr;
+    struct linked_ring *buffers[BUFFER_SIZE];
+    struct lr_cell *cells[BUFFER_SIZE];
+
     struct linked_ring *file_buffer;
 
     struct PeviCursor cursor;
@@ -87,6 +91,7 @@ struct Pevi {
 
 
 extern struct Pevi state;
+
 
 
 void render_start(eer_t *win);
