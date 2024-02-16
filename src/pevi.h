@@ -6,8 +6,8 @@
 #include <Menu.h>
 #include <Serial.h>
 #include <Symbol.h>
-#include <Text.h>
 #include <Terminal.h>
+#include <Text.h>
 #include <Window.h>
 #include <eer_app.h>
 #include <lr.h>
@@ -24,7 +24,12 @@
 #include "input.h"
 #include "pemath.h"
 
-enum pevi_mode { PEVI_MODE_FREE, PEVI_MODE_EDIT, PEVI_MODE_COMMAND, PEVI_MODE_DRAG };
+enum pevi_mode {
+    PEVI_MODE_FREE,
+    PEVI_MODE_EDIT,
+    PEVI_MODE_COMMAND,
+    PEVI_MODE_DRAG
+};
 
 struct Plane {
     Vector3 pos;
@@ -57,10 +62,18 @@ struct UI {
 // owner -> file
 // cell -> struct Cursor
 
-struct File {
-    char              *filename;
-    struct linked_ring buffer;
+enum pevi_buffer { PEVI_BUF_FILE, PEVI_BUF_TERMINAL, PEVI_BUF_IMAGE };
+
+struct Buffer {
+    enum pevi_buffer   type;
+    char              *path;
+    FILE              *fp;
+    size_t             size;
+    struct linked_ring lr;
     struct lr_cell    *cells;
+
+    struct Buffer *prev;
+    struct Buffer *next;
 };
 
 struct Pevi {
@@ -74,9 +87,12 @@ struct Pevi {
     struct linked_ring cmd_buffer;
     struct lr_cell     cmd_cells[COMMAND_BUFFER_SIZE];
 
-    size_t buffer_nr;
+
+    struct Buffer *buffer;
+
+    size_t              buffer_nr;
     struct linked_ring *buffers[BUFFER_SIZE];
-    struct lr_cell *cells[BUFFER_SIZE];
+    struct lr_cell     *cells[BUFFER_SIZE];
 
     struct linked_ring *file_buffer;
 
@@ -91,7 +107,6 @@ struct Pevi {
 
 
 extern struct Pevi state;
-
 
 
 void render_start(eer_t *win);

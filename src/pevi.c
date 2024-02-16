@@ -163,7 +163,9 @@ void enable_edit_mode(void *args)
     state.cam.is_enabled = false;
 
     if (!state.file_buffer) {
-        state.file_buffer = buffer_init(BUFFER_SIZE);
+        struct Buffer *buffer;
+        buffer            = buffer_init(BUFFER_SIZE);
+        state.file_buffer = &buffer->lr;
     }
 
     state.cam.projection = CAMERA_ORTHOGRAPHIC;
@@ -299,65 +301,98 @@ int main(void)
     Vector3      cursor_pos = {0};
 
     // Foreach opened buffers (e.g. files, terminals);
+    struct Buffer *buffer;
+    buffer = state.buffer;
+    if (buffer) {
+        do {
+            struct linked_ring *file_buffer = &buffer->lr;
 
-    for (size_t buf_index = 0; buf_index < state.buffer_nr; buf_index++) {
-        struct linked_ring *file_buffer = state.buffers[buf_index];
+            if (file_buffer->owners != NULL) {
+                struct lr_cell *owner_cell;
 
-        if (file_buffer->owners != NULL) {
-            struct lr_cell *owner_cell;
-
-            for (owner_cell = lr_last_cell(file_buffer);
-                 owner_cell >= file_buffer->owners; owner_cell--) {
-
-
-                lr_read_string(file_buffer, text, lr_owner(owner_cell->data));
-
-                struct Plane pln;
-                Color        tint;
-                pln  = *(struct Plane *)owner_cell->data;
-                tint = pln.tint;
-
-                if (state.mode == PEVI_MODE_EDIT
-                    && (struct Plane *)state.cursor.plane
-                           == (struct Plane *)owner_cell->data) {
-                    pln      = cam_plane;
-                    pln.tint = tint;
-                }
+                for (owner_cell = lr_last_cell(file_buffer);
+                     owner_cell >= file_buffer->owners; owner_cell--) {
 
 
-                react(Text, txt,
-                      _({.font      = win.state.font,
-                         .spacing   = 0.6f,
-                         .tint      = BLACK,
-                         .content   = text,
-                         .parent    = (void *)file_buffer,
-                         .owner     = owner_cell->data,
-                         .font_size = 48.,
-                         .angles    = pln.angles,
-                         .pos       = pln.pos,
-                         .camera    = &cam.state.camera,
-                         .bg_color  = pln.tint,
-			 .shader  = win.state.shader,
-                         .on        = {.hover = on_dot_hover}}));
+                    lr_read_string(file_buffer, text,
+                                   lr_owner(owner_cell->data));
 
-                //   react(Terminal, trm,
-                //                  _({
-                //                     .command= text,
-                //                     .angles    = pln.angles,
-                //                     .pos       = pln.pos,
-                //                     .camera    = &cam.state.camera,
-                //                     .bg_color  = pln.tint,
-                //		 }));
-                //
+                    struct Plane pln;
+                    Color        tint;
+                    pln  = *(struct Plane *)owner_cell->data;
+                    tint = pln.tint;
 
-                if (state.mode == PEVI_MODE_EDIT
-                    && (size_t)state.cursor.plane == (size_t)owner_cell->data) {
-                    cursor_pos.x = txt.state.pos.x + 0.2;
-                    cursor_pos.y = txt.state.pos.y;
-                    cursor_pos.z = txt.state.size.z;
+                    if (state.mode == PEVI_MODE_EDIT
+                        && (struct Plane *)state.cursor.plane
+                               == (struct Plane *)owner_cell->data) {
+                        pln      = cam_plane;
+                        pln.tint = tint;
+                    }
+
+
+                    if (buffer->type == PEVI_BUF_FILE) {
+                        shoot(Text, txt,
+                              _({.font      = win.state.font,
+                                 .spacing   = 0.6f,
+                                 .tint      = BLACK,
+                                 .content   = text,
+                                 .parent    = (void *)file_buffer,
+                                 .owner     = owner_cell->data,
+                                 .font_size = 24.,
+                                 .angles    = pln.angles,
+                                 .pos       = pln.pos,
+                                 .camera    = &cam.state.camera,
+                                 .bg_color  = pln.tint,
+                                 .shader    = win.state.shader,
+                                 .on        = {.hover = on_dot_hover}}));
+                    }
+
+       
+                    if (state.mode == PEVI_MODE_EDIT
+                        && (size_t)state.cursor.plane
+                               == (size_t)owner_cell->data) {
+                        cursor_pos.x = txt.state.pos.x + 0.2;
+                        cursor_pos.y = txt.state.pos.y;
+                        cursor_pos.z = txt.state.size.z;
+                    }
                 }
             }
-        }
+
+             if (buffer->type == PEVI_BUF_TERMINAL) {
+		        struct Plane pln;
+		        struct Plane *pln_ptr;
+		        Color        tint;
+
+			if(buffer->lr.owners) {
+				pln_ptr=(struct Plane *)buffer->lr.owners->data;
+		 }	else{
+		    state.planes[state.plane_nr] = cam_plane;
+		    pln_ptr = &state.planes[state.plane_nr];
+		    state.plane_nr += 1;
+		 }
+			pln= *pln_ptr;
+                        shoot(Terminal, trm,
+                              _({
+                                  .fp        = buffer->fp,
+                                  .command   = buffer->path,
+                                  .buffer    = &buffer->lr,
+                                  .font      = win.state.font,
+                                  .spacing   = 0.6f,
+                                  .tint      = BLACK,
+                                  .owner     = lr_owner(pln_ptr),
+                                  .font_size = 24.,
+                                  .angles    = pln.angles,
+                                  .pos       = pln.pos,
+                                  .camera    = &cam.state.camera,
+                                  .bg_color  = pln.tint,
+                                  .shader    = win.state.shader,
+
+                              }));
+                    }
+
+
+            buffer = buffer->next;
+        } while (state.buffer != buffer);
     }
 
     react(Cursor, cur,

@@ -4,24 +4,35 @@
 #include <raylib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <lr.h>
+#include <sys/poll.h>
 
 #define Terminal_new(instance)    eer(Terminal, instance)
 #define Terminal(instance, props) eer_withprops(Terminal, instance, _(props))
 
 typedef struct {
+    FILE *fp;
     char   *command;
+    struct linked_ring *buffer;
+    lr_owner_t owner;
     bool is_visible;
     Camera *camera;
     Vector3 pos;
     Vector2 angles;
     Vector3 size;
+    Font font;
+    float   font_size;
+    float   spacing;
+    float   line_spacing;
+    Shader shader;
+    Color tint;
     Color bg_color;
 } Terminal_props_t;
 
 typedef struct {
-    FILE *fp;
 fd_set fds;
 int    fd;
+struct pollfd _fds[2];
 
     char  *content;
     char  buffer[1024];

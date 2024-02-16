@@ -15,15 +15,28 @@ void set_fovy(void *fovy_str)
 
 void print_fps(void *arg) { state.is_fps_visible = !state.is_fps_visible; }
 
-struct linked_ring *buffer_init(size_t size)
+struct Buffer *buffer_init(size_t size)
 {
-    size_t              index  = state.buffer_nr;
-    struct linked_ring *buffer = malloc(sizeof(struct linked_ring));
-    struct lr_cell     *cells  = malloc(sizeof(struct lr_cell) * size);
+    size_t         index  = state.buffer_nr;
+    struct Buffer *buffer = malloc(sizeof(struct Buffer));
+    //    struct linked_ring *buffer = malloc(sizeof(struct linked_ring));
+    struct lr_cell *cells = malloc(sizeof(struct lr_cell) * size);
 
-    lr_result_t result   = lr_init(buffer, BUFFER_SIZE, cells);
-    state.buffers[index] = buffer;
-    state.buffer_nr += 1;
+    lr_result_t result = lr_init(&buffer->lr, size, cells);
+    buffer->size       = size;
+
+    if (state.buffer) {
+
+        buffer->next             = state.buffer;
+        buffer->prev             = state.buffer->prev;
+        state.buffer->prev->next = buffer;
+        state.buffer->prev       = buffer;
+    } else {
+        buffer->next = buffer->prev = buffer;
+        state.buffer                = buffer;
+    }
+    //    state.buffers[index] = buffer;
+    //    state.buffer_nr += 1;
 
     return buffer;
 }
@@ -66,7 +79,9 @@ void plane_open(void *command)
         return;
     }
 
-    state.file_buffer = buffer_init(BUFFER_SIZE);
+    struct Buffer *buffer;
+    buffer            = buffer_init(BUFFER_SIZE);
+    state.file_buffer = &buffer->lr;
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
     while (fgets(text, sizeof(text), file) != NULL) {
@@ -228,11 +243,20 @@ void on_command(eer_t *menu)
 void on_command_not_found(eer_t *menu)
 {
     state.cursor.cell = 0;
-    state.file_buffer = buffer_init(BUFFER_SIZE);
 
-    enable_edit_mode(0);
+    struct Buffer *buffer;
+    buffer       = buffer_init(BUFFER_SIZE);
+    buffer->type = PEVI_BUF_TERMINAL;
+    buffer->path = strdup(state.command);
 
-    run_command_interactively(state.command);
+    state.file_buffer = &buffer->lr;
+
+    buffer->fp = popen(buffer->path, "r");
+
+    int fd = fileno(buffer->fp);
+    if (buffer->fp == NULL) {
+        return;
+    }
 
     *state.command = 0;
 

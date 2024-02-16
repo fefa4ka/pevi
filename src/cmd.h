@@ -13,7 +13,7 @@ void enable_command_mode(void *arg);
 void set_fovy(void *fovy);
 void print_fps(void *arg);
 
-struct linked_ring *buffer_init(size_t size);
+struct Buffer *buffer_init(size_t size);
 void buffer_save(void *command);
 void buffer_dump(void *command);
 void plane_open(void *command);

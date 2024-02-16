@@ -25,12 +25,25 @@ SHOULD_UPDATE(Text)
 {
     Font *font   = &next_props->font;
     state->scale = next_props->font_size / (float)next_props->font.baseSize;
-    state->size
-        = MeasureText3D(props->font, props->content, props->font_size,
-                        props->spacing, props->line_spacing);
-    state->pos = (Vector3){0};
+    state->size  = MeasureText3D(next_props->font, next_props->content, next_props->font_size,
+                                 next_props->spacing, next_props->line_spacing);
+    state->pos   = (Vector3){0};
+    Vector2 world_pos = GetWorldToScreen(next_props->pos, *next_props->camera);
 
-    return true;
+    Matrix transform;
+    transform = MatrixTranslate(next_props->pos.x, next_props->pos.y, next_props->pos.z);
+    transform = MatrixMultiply(MatrixRotateY(next_props->angles.y), transform);
+    transform = MatrixMultiply(MatrixRotateX(next_props->angles.x), transform);
+    transform = MatrixMultiply(
+        MatrixTranslate(state->size.x, state->size.y, state->size.z),
+        transform);
+    Vector3 finalPosition = {0, 0, 0};
+    finalPosition         = Vector3Transform(finalPosition, transform);
+
+    Vector2 world_pos_right = GetWorldToScreen(finalPosition, *next_props->camera);
+
+    return world_pos_right.x > 0 && world_pos_right.y > 0 && world_pos.x < GetScreenWidth()
+           && world_pos.y < GetScreenHeight();
 }
 
 ///
@@ -48,6 +61,7 @@ WILL_UPDATE(Text)
 ///
 RELEASE(Text)
 {
+
     Font font = props->font;
     Symbol_new(dot);
 
@@ -95,7 +109,7 @@ RELEASE(Text)
                        state->size, BLACK);
     }
 
-    eer_init(dot);
+    eer_init();
     for (int index = 0; index < TextLength(props->content); index++) {
         if (props->content[index] == '\n') {
 
@@ -104,7 +118,7 @@ RELEASE(Text)
         } else if (props->content[index] == '\t') {
             state->pos.x += props->spacing * 2;
         } else {
-            react(Symbol, dot,
+            shoot(Symbol, dot,
                   _({.font          = props->font,
                      .tint          = props->tint,
                      .parent        = props->parent,
@@ -117,7 +131,7 @@ RELEASE(Text)
                      .on            = {.hover = props->on.hover},
                      .owner         = props->owner,
                      .is_hovered    = collision.hit,
-		     .shader = props->shader,
+                     .shader        = props->shader,
                      .content_index = index}));
 
 

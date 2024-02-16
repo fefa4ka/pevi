@@ -36,6 +36,18 @@ enum eer_context eer_staging(eer_t *instance, void *next_props)
         instance->release(instance);
         instance->did_mount(instance);
         instance->stage.state.step = STAGE_RELEASED;
+    } else if (STAGE_SHOOTING == instance->stage.state.step) {
+        instance->will_mount(instance, next_props);
+        if(!instance->should_update(instance, next_props)) {
+            return CONTEXT_SAME;
+	}
+        instance->stage.state.step = STAGE_PREPARED;
+        instance->will_update(instance, next_props);
+        instance->stage.state.step = STAGE_RELEASED;
+        instance->release(instance);
+        instance->did_update(instance);
+        instance->did_mount(instance);
+        instance->stage.state.step = STAGE_RELEASED;
     } else if (STAGE_UNMOUNTED == instance->stage.state.step) {
         instance->stage.state.step = STAGE_BLOCKED;
         instance->did_unmount(instance);

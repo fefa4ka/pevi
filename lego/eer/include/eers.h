@@ -3,6 +3,7 @@
 #include "eer.h"
 
 #define react    eer_react
+#define shoot    eer_shoot
 #define with     eer_with
 #define apply    eer_apply
 #define use      eer_use

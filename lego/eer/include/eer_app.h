@@ -9,6 +9,7 @@
 #define use   eer_use
 #define apply eer_apply
 #define react eer_react
+#define shoot eer_shoot
 
 #define halt eer_halt
 #define terminate eer_terminate

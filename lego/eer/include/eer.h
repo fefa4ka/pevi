@@ -282,6 +282,15 @@
         }                                                                      \
     }
 
+#define eer_shoot(Type, name, propsValue)                                      \
+    {                                                                          \
+        Type##_props_t next_props = propsValue;                                \
+        if (CONTEXT_BLOCKED != eer_land.state.context) {                    \
+            name.instance.stage.state.step = STAGE_SHOOTING;                   \
+            eer_staging(&name.instance, &next_props);                          \
+        }                                                                      \
+    }
+
 #define eer_shut(x)                                                            \
     x.instance.stage = STAGE_UNMOUNTED;                                        \
     eer_staging(&x.instance, 0);
@@ -364,6 +373,7 @@ union eer_stage {
             STAGE_RELEASED,
             STAGE_DEFINED,
             STAGE_REACTING,
+            STAGE_SHOOTING,
             STAGE_PREPARED,
             STAGE_UNMOUNTED
         } step : 3;

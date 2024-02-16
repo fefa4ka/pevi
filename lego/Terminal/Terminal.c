@@ -1,53 +1,63 @@
 #include "Terminal.h"
-#include <eers.h>
 #include <Text.h>
+#include <eers.h>
+void swap_pollfd(struct pollfd *a, struct pollfd *b)
+{
+    if (a == b)
+        return;
+    struct pollfd tmp = *a;
+    *a                = *b;
+    *b                = tmp;
+}
+///
+/// \brief
+///
+
+#include <fcntl.h>
+WILL_MOUNT(Terminal)
+{
+    state->fd        = fileno(props->fp);
+    state->buffer[0] = '\0';
+
+    state->_fds[0].fd     = STDIN_FILENO;
+    state->_fds[0].events = POLLIN; // Wait for input on stdin
+    state->_fds[1].fd     = state->fd;
+    state->_fds[1].events = POLLIN; // Wait for input on command output
+    fcntl(state->_fds[0].fd, F_SETFL,
+          fcntl(state->_fds[0].fd, F_GETFL) | O_NONBLOCK);
+    fcntl(state->_fds[1].fd, F_SETFL,
+          fcntl(state->_fds[1].fd, F_GETFL) | O_NONBLOCK);
+}
 
 ///
 /// \brief
 ///
-WILL_MOUNT(Terminal) {
-    state->fp = popen(props->command, "r");
-    if (state->fp == NULL) {
-        perror("popen");
-	return;
+SHOULD_UPDATE(Terminal) { return true; }
+
+///
+/// \brief
+///
+WILL_UPDATE(Terminal)
+{
+    char buffer[BUFSIZ];
+
+    int ret = poll(state->_fds, 2, 1); // Wait indefinitely for events
+
+    if (ret == 0 || ret == -1) {
+        return;
     }
 
-    state->fd = fileno(state->fp);
-    state->buffer[0] = '\0';
-}
+    struct pollfd *curr = &state->_fds[1];
 
-///
-/// \brief
-///
-SHOULD_UPDATE(Terminal) { 
+    if (state->_fds[1].revents & POLLIN) { // Input available on stdin
+        ssize_t bytes_read = read(state->fd, buffer, BUFSIZ);
+        if (bytes_read <= 0)
+            return;
 
-        FD_ZERO(&state->fds);
-        FD_SET(state->fd, &state->fds);
-        FD_SET(STDIN_FILENO, &state->fds);
-
-        if (select(state->fd + 1, &state->fds, NULL, NULL, NULL) == -1) {
-		return false;
+        for (ssize_t i = 0; i < bytes_read; i++) {
+            lr_put(props->buffer, (char)buffer[i], lr_owner(props->owner));
         }
-
-	return true; 
-
-}
-
-///
-/// \brief
-///
-WILL_UPDATE(Terminal) {
-    char  buffer[BUFSIZ];
-        if (FD_ISSET(state->fd, &state->fds)) {
-            ssize_t bytes_read = read(state->fd, state->buffer, BUFSIZ);
-            if (bytes_read <= 0) return;
-	}
-
-         //   for (ssize_t i = 0; i < bytes_read; i++) {
-         //       lr_put(state.file_buffer, (char)buffer[i],
-         //              lr_owner(state.cursor.plane));
-         //   }
-            
+    }
 }
 
 ///
@@ -57,35 +67,40 @@ RELEASE(Terminal)
 {
     Text_new(txt);
 
-    eer_init(txt);
-    react(Text, txt,
-          _({
-              .font      = GetFontDefault(),
-              .spacing   = 0.6f,
-              .tint      = BLACK,
-              .content   = props->command,
-              .owner     = 0,
-              .font_size = 12.0f,
-              .angles    = props->angles,
-              .pos       = props->pos,
-              .camera    = props->camera,
-              .bg_color  = props->bg_color,
-          }));
-    if(state->buffer) {
-    react(Text, txt,
-          _({
-              .font      = GetFontDefault(),
-              .spacing   = 0.6f,
-              .tint      = BLACK,
-              .content   = state->buffer,
-              .owner     = 0,
-              .font_size = 12.0f,
-              .angles    = props->angles,
-              .pos       = props->pos,
-              .camera    = props->camera,
-              .bg_color  = props->bg_color,
-          }));
-    }
+    eer_init();
+
+    shoot(Text, txt,
+          _({.font      = props->font,
+             .spacing   = 0.6f,
+             .tint      = BLACK,
+             .content   = props->command,
+             .parent    = (void *)props->buffer,
+             .owner     = props->owner,
+             .font_size = 24.,
+             .angles    = props->angles,
+             .pos       = props->pos,
+             .camera    = props->camera,
+             .bg_color  = props->bg_color,
+             .shader    = props->shader}));
+
+    Vector3 pos = props->pos;
+    pos.z += txt.state.size.z;
+
+    char text[1024];
+    lr_read_string(props->buffer, text, lr_owner(props->owner));
+    shoot(Text, txt,
+          _({.font      = props->font,
+             .spacing   = 0.6f,
+             .tint      = BLACK,
+             .content   = text,
+             .parent    = (void *)props->buffer,
+             .owner     = props->owner,
+             .font_size = 24.,
+             .angles    = props->angles,
+             .pos       = pos,
+             .camera    = props->camera,
+             .bg_color  = props->bg_color,
+             .shader    = props->shader}));
 }
 
 DID_MOUNT_SKIP(Terminal);
