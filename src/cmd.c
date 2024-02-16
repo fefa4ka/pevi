@@ -2,8 +2,8 @@
 
 void enable_command_mode(void *arg)
 {
-	state.mode = PEVI_MODE_COMMAND;
-	state.cam.is_movable = false;
+    state.mode           = PEVI_MODE_COMMAND;
+    state.cam.is_movable = false;
 }
 
 void set_fovy(void *fovy_str)
@@ -21,7 +21,7 @@ struct linked_ring *buffer_init(size_t size)
     struct linked_ring *buffer = malloc(sizeof(struct linked_ring));
     struct lr_cell     *cells  = malloc(sizeof(struct lr_cell) * size);
 
-    lr_result_t result = lr_init(buffer, BUFFER_SIZE, cells);
+    lr_result_t result   = lr_init(buffer, BUFFER_SIZE, cells);
     state.buffers[index] = buffer;
     state.buffer_nr += 1;
 
@@ -32,7 +32,7 @@ void buffer_save(void *command)
 {
     FILE           *file;
     char           *filename[COMMAND_BUFFER_SIZE];
-    char text[BUFFER_SIZE];
+    char            text[BUFFER_SIZE];
     struct lr_cell *owner_cell;
     sscanf(command, "%*s %s", &filename);
 
@@ -56,7 +56,7 @@ void plane_open(void *command)
 {
     FILE           *file;
     char           *filename[COMMAND_BUFFER_SIZE];
-    char text[BUFFER_SIZE];
+    char            text[BUFFER_SIZE];
     struct lr_cell *owner_cell;
     sscanf(command, "%*s %s", &filename);
 
@@ -66,7 +66,7 @@ void plane_open(void *command)
         return;
     }
 
-    state.file_buffer  =buffer_init(BUFFER_SIZE);
+    state.file_buffer = buffer_init(BUFFER_SIZE);
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
     while (fgets(text, sizeof(text), file) != NULL) {
@@ -186,8 +186,8 @@ void run_command_interactively(char *command)
 
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
-         //       lr_put(state.file_buffer, (char)buffer[i],
-         //              lr_owner(state.cursor.plane));
+                //       lr_put(state.file_buffer, (char)buffer[i],
+                //              lr_owner(state.cursor.plane));
             }
             // if (write(fd, buffer, bytes_read) == -1) {
             //     perror("write");
@@ -204,8 +204,8 @@ void run_command_interactively(char *command)
 
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
-              //  lr_put(state.file_buffer, (char)buffer[i],
-              //         lr_owner(state.cursor.plane));
+                lr_put(state.file_buffer, (char)buffer[i],
+                       lr_owner(state.cursor.plane));
             }
             //   if (write(STDOUT_FILENO, buffer, bytes_read) == -1) {
             //       perror("write");
@@ -227,18 +227,27 @@ void on_command(eer_t *menu)
 
 void on_command_not_found(eer_t *menu)
 {
+    state.cursor.cell = 0;
+    state.file_buffer = buffer_init(BUFFER_SIZE);
+
+    enable_edit_mode(0);
+
+    run_command_interactively(state.command);
+
     *state.command = 0;
 
     state.mode           = PEVI_MODE_FREE;
+    state.cursor.plane   = 0;
+    state.cam.is_enabled = true;
     state.cam.is_movable = true;
+    state.cam.projection = CAMERA_PERSPECTIVE;
 }
 
-void           buffer_dump(void *command) { lr_dump(&state.cmd_buffer); }
+void buffer_dump(void *command) { lr_dump(&state.cmd_buffer); }
 
 void quit(void *command)
 {
     CloseWindow();
     exit(0);
 }
-
 

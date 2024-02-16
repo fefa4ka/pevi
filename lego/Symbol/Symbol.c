@@ -137,41 +137,47 @@ RELEASE(Symbol)
         rlEnd();
 
 
-        Camera cam = *props->camera;
-        ray        = GetMouseRay(GetMousePosition(), cam);
+        if (props->is_hovered) {
+            Camera cam = *props->camera;
+            ray        = GetMouseRay(GetMousePosition(), cam);
 
-        Mesh mesh = GenMeshCube(state->size.x, state->size.y, state->size.z);
+            Mesh mesh
+                = GenMeshCube(state->size.x, state->size.y, state->size.z);
 
-        Matrix transform;
-        transform
-            = MatrixTranslate(props->absolute_pos.x, props->absolute_pos.y,
-                              props->absolute_pos.z);
-        transform = MatrixMultiply(MatrixRotateY(props->angles.y), transform);
-        transform = MatrixMultiply(MatrixRotateX(props->angles.x), transform);
-        transform
-            = MatrixMultiply(MatrixTranslate(state->pos.x + state->size.x / 2,
-                                             state->pos.y + state->size.y / 2,
-                                             state->pos.z + state->size.z / 2),
-                             transform);
+            Matrix transform;
+            transform
+                = MatrixTranslate(props->absolute_pos.x, props->absolute_pos.y,
+                                  props->absolute_pos.z);
+            transform
+                = MatrixMultiply(MatrixRotateY(props->angles.y), transform);
+            transform
+                = MatrixMultiply(MatrixRotateX(props->angles.x), transform);
+            transform = MatrixMultiply(
+                MatrixTranslate(state->pos.x + state->size.x / 2,
+                                state->pos.y + state->size.y / 2,
+                                state->pos.z + state->size.z / 2),
+                transform);
 
-        collision = GetRayCollisionMesh(ray, mesh, transform);
-        if (!collision.hit) {
-            ray = GetMouseRay(
-                (Vector2){GetScreenWidth() / 2, GetScreenHeight() / 2}, cam);
             collision = GetRayCollisionMesh(ray, mesh, transform);
-        }
+            if (!collision.hit) {
+                ray = GetMouseRay(
+                    (Vector2){GetScreenWidth() / 2, GetScreenHeight() / 2},
+                    cam);
+                collision = GetRayCollisionMesh(ray, mesh, transform);
+            }
 
-        if (collision.hit && props->on.hover)
-            props->on.hover(self);
+            if (collision.hit && props->on.hover)
+                props->on.hover(self);
 
-        if (collision.hit) {
-            Vector3 cursor_size = state->size;
-            cursor_size.y       = 0.15;
+            if (collision.hit) {
+                Vector3 cursor_size = state->size;
+                cursor_size.y       = 0.15;
 
-            DrawCubeWiresV((Vector3){state->size.x / 2, 0,
+                DrawCubeWiresV((Vector3){state->size.x / 2, 0,
 
-                                     state->size.z / 2},
-                           cursor_size, RED);
+                                         state->size.z / 2},
+                               cursor_size, RED);
+            }
         }
         rlPopMatrix();
 

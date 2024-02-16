@@ -56,7 +56,8 @@ void on_dot_hover(eer_t *symbol)
     eer_self(Symbol, symbol);
 
     if (state.mode == PEVI_MODE_FREE) {
-        state.file_buffer = (struct linked_ring*)(struct Plane *)self->props.parent;
+        state.file_buffer
+            = (struct linked_ring *)(struct Plane *)self->props.parent;
         state.cursor.plane = (struct Plane *)self->props.owner;
         state.cursor.cell  = (struct lr_cell *)self->props.owner;
     }
@@ -161,8 +162,8 @@ void enable_edit_mode(void *args)
     state.mode           = PEVI_MODE_EDIT;
     state.cam.is_enabled = false;
 
-    if(!state.file_buffer) {
-	    state.file_buffer = buffer_init(BUFFER_SIZE);
+    if (!state.file_buffer) {
+        state.file_buffer = buffer_init(BUFFER_SIZE);
     }
 
     state.cam.projection = CAMERA_ORTHOGRAPHIC;
@@ -189,7 +190,7 @@ void   enable_drag_mode(void *args)
 void enable_execute_mode(void *args)
 {
 
-        struct linked_ring *buffer = state.file_buffer;
+    struct linked_ring *buffer = state.file_buffer;
     if (state.cursor.cell) {
         char command[COMMAND_BUFFER_SIZE];
 
@@ -204,7 +205,7 @@ void edit_mode_process()
     int key;
     int r = Serial_read(&input, &key);
 
-        struct linked_ring *file_buffer = state.file_buffer;
+    struct linked_ring *file_buffer = state.file_buffer;
     if (r) {
         key = 0;
     }
@@ -277,7 +278,7 @@ int main(void)
 
     //    state.file_buffer = &file_buffer;
 
-
+    SetTargetFPS(30);
     // Main loop
     ignite(clk, win);
     apply(Camera, cam, _(state.cam));
@@ -329,7 +330,7 @@ int main(void)
                          .spacing   = 0.6f,
                          .tint      = BLACK,
                          .content   = text,
-			 .parent = (void*)file_buffer,
+                         .parent    = (void *)file_buffer,
                          .owner     = owner_cell->data,
                          .font_size = 12.0f,
                          .angles    = pln.angles,

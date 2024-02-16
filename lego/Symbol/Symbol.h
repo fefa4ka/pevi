@@ -20,6 +20,7 @@ typedef struct {
     Vector3 absolute_pos;
     Vector2 angles;
     bool is_selected;
+    bool is_hovered;
     Camera *camera;
     struct {
         void (*hover)(eer_t *instance);
