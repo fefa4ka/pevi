@@ -9,6 +9,7 @@
 
 typedef struct {
     Font font;
+    Shader shader;
     Color tint;
     char *content;
     void *parent;

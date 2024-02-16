@@ -20,6 +20,8 @@ typedef struct {
 
 typedef struct {
     Vector3 pos;
+    Font font;
+    Shader shader;
 } Window_state_t;
 
 eer_header(Window);

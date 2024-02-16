@@ -326,17 +326,18 @@ int main(void)
 
 
                 react(Text, txt,
-                      _({.font      = GetFontDefault(),
+                      _({.font      = win.state.font,
                          .spacing   = 0.6f,
                          .tint      = BLACK,
                          .content   = text,
                          .parent    = (void *)file_buffer,
                          .owner     = owner_cell->data,
-                         .font_size = 12.0f,
+                         .font_size = 48.,
                          .angles    = pln.angles,
                          .pos       = pln.pos,
                          .camera    = &cam.state.camera,
                          .bg_color  = pln.tint,
+			 .shader  = win.state.shader,
                          .on        = {.hover = on_dot_hover}}));
 
                 //   react(Terminal, trm,

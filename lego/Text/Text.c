@@ -26,7 +26,7 @@ SHOULD_UPDATE(Text)
     Font *font   = &next_props->font;
     state->scale = next_props->font_size / (float)next_props->font.baseSize;
     state->size
-        = MeasureText3D(GetFontDefault(), props->content, props->font_size,
+        = MeasureText3D(props->font, props->content, props->font_size,
                         props->spacing, props->line_spacing);
     state->pos = (Vector3){0};
 
@@ -117,6 +117,7 @@ RELEASE(Text)
                      .on            = {.hover = props->on.hover},
                      .owner         = props->owner,
                      .is_hovered    = collision.hit,
+		     .shader = props->shader,
                      .content_index = index}));
 
 

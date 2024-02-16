@@ -99,6 +99,7 @@ RELEASE(Symbol)
         const float tw = (srcRec.x + srcRec.width) / font->texture.width;
         const float th = (srcRec.y + srcRec.height) / font->texture.height;
 
+                BeginShaderMode(props->shader);    // Activate SDF font shader
         rlCheckRenderBatchLimit(4 + 4 * props->backface);
         rlSetTexture(font->texture.id);
 
@@ -184,6 +185,8 @@ RELEASE(Symbol)
         //        DrawRotatedBoundingBox(originalBox, GRAY);
 
         rlSetTexture(0);
+
+	EndShaderMode();            // Activate our default shader for next drawings
     }
 }
 
