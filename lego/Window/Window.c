@@ -8,9 +8,10 @@
 ///
 WILL_MOUNT(Window)
 {
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_TRANSPARENT| FLAG_VSYNC_HINT);
     InitWindow(props->width, props->height, props->title);
-
+    ToggleFullscreen();
+ToggleBorderlessWindowed();
     // Loading file to memory
     int            fileSize = 0;
     unsigned char *fileData = LoadFileData("font.ttf", &fileSize);

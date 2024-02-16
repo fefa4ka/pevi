@@ -295,7 +295,7 @@ int main(void)
     state.cursor.cell = false;
 
 
-    ClearBackground(RAYWHITE);
+    ClearBackground(BLANK);
 
 
     struct Plane cam_plane  = camera_plane(&cam.state.camera);

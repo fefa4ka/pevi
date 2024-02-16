@@ -72,7 +72,10 @@ SHOULD_UPDATE(Camera)
 ///
 /// \brief
 ///
-WILL_UPDATE(Camera) { BeginMode3D(state->camera); }
+WILL_UPDATE(Camera) { 
+
+	BeginMode3D(state->camera);
+}
 
 ///
 /// \brief
