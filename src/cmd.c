@@ -172,8 +172,8 @@ void run_command_interactively(char *command)
 
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
-                lr_put(state.file_buffer, (char)buffer[i],
-                       lr_owner(state.cursor.plane));
+         //       lr_put(state.file_buffer, (char)buffer[i],
+         //              lr_owner(state.cursor.plane));
             }
             // if (write(fd, buffer, bytes_read) == -1) {
             //     perror("write");
@@ -190,8 +190,8 @@ void run_command_interactively(char *command)
 
             for (ssize_t i = 0; i < bytes_read; i++) {
                 // Write each character individually
-                lr_put(state.file_buffer, (char)buffer[i],
-                       lr_owner(state.cursor.plane));
+              //  lr_put(state.file_buffer, (char)buffer[i],
+              //         lr_owner(state.cursor.plane));
             }
             //   if (write(STDOUT_FILENO, buffer, bytes_read) == -1) {
             //       perror("write");

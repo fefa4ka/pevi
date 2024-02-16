@@ -14,6 +14,7 @@ typedef struct {
     int projection;
     int mode;
     bool is_movable;
+    bool is_enabled;
 } Camera_props_t;
 
 typedef struct {

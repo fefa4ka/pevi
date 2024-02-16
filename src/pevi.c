@@ -14,6 +14,7 @@ Window(win, _({"pevi", WINDOW_WIDTH, WINDOW_HEIGHT, &cam.state.camera,
                .on = {.before = render_start, .after = render_end}}));
 Cursor_new(cur);
 Text_new(txt);
+Terminal_new(trm);
 
 
 // Shortcuts
@@ -48,7 +49,6 @@ Menu(tty, _({.menu    = commands,
 
 
 char text[BUFFER_SIZE] = {0}; //{'p', 'e', 'v', 'i', '\0'};
-
 
 void on_dot_hover(eer_t *symbol)
 {
@@ -91,6 +91,7 @@ void render_end(eer_t *win)
 void on_shortcut(eer_t *menu)
 {
     lr_data_t data;
+
     while (Serial_read(&input, &data) == OK && data) {
     }
     int r
@@ -104,6 +105,7 @@ void on_shortcut(eer_t *menu)
 void on_shortcut_not_found(eer_t *menu)
 {
     lr_data_t data;
+
     while (Serial_read(&input, &data) == OK && data) {
     }
     int r
@@ -118,7 +120,7 @@ void read_symbol(eer_t *uart_ptr)
 {
     // FIXME: hack
     if (state.mode == PEVI_MODE_COMMAND
-        && eer_state(Serial, &input, sending) == 0) {
+        && eer_state(Serial, &input, sending) == '\b') {
         int data;
         lr_pop(&state.cmd_buffer, &data,
                lr_owner(eer_prop(Serial, &input, handler)->receive));
@@ -156,7 +158,7 @@ struct Plane camera_plane(Camera *camera)
 void enable_edit_mode(void *args)
 {
     state.mode           = PEVI_MODE_EDIT;
-    state.cam.is_movable = false;
+    state.cam.is_enabled = false;
 
 
     state.cam.projection = CAMERA_ORTHOGRAPHIC;
@@ -214,7 +216,7 @@ void edit_mode_process()
     } else if (IsKeyPressed(KEY_ESCAPE)) {
         state.mode           = PEVI_MODE_FREE;
         state.cursor.plane   = 0;
-        state.cam.is_movable = true;
+        state.cam.is_enabled = true;
         state.cam.projection = CAMERA_PERSPECTIVE;
 
 
@@ -267,9 +269,10 @@ int main(void)
 
     state.file_buffer = &file_buffer;
 
+
+    // Main loop
     ignite(clk, win);
     apply(Camera, cam, _(state.cam));
-
 
     if (state.mode == PEVI_MODE_DRAG) {
         struct Plane pln;
@@ -323,11 +326,21 @@ int main(void)
                      .bg_color  = pln.tint,
                      .on        = {.hover = on_dot_hover}}));
 
+            //   react(Terminal, trm,
+            //                  _({
+            //                     .command= text,
+            //                     .angles    = pln.angles,
+            //                     .pos       = pln.pos,
+            //                     .camera    = &cam.state.camera,
+            //                     .bg_color  = pln.tint,
+            //		 }));
+            //
+
             if (state.mode == PEVI_MODE_EDIT
                 && (size_t)state.cursor.plane == (size_t)owner_cell->data) {
                 cursor_pos.x = txt.state.pos.x + 0.2;
                 cursor_pos.y = txt.state.pos.y;
-                cursor_pos.z = txt.state.pos.z + txt.state.size.z;
+                cursor_pos.z = txt.state.size.z;
             }
         }
     }

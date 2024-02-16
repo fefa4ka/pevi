@@ -7,6 +7,7 @@
 #include <Serial.h>
 #include <Symbol.h>
 #include <Text.h>
+#include <Terminal.h>
 #include <Window.h>
 #include <eer_app.h>
 #include <lr.h>

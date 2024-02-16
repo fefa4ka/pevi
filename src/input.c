@@ -1,7 +1,7 @@
 #include "input.h"
 #include <raylib.h>
 
-static int  key_pressed = 0;
+static int key_pressed = 0;
 
 void *key_init(void *baudrate) { return 0; }
 
@@ -19,7 +19,7 @@ bool key_is_data_received()
     }
 
     if (IsKeyPressed(KEY_BACKSPACE)) {
-        key_pressed = 0;
+        key_pressed = '\b';
         return true;
     }
     key_pressed = GetCharPressed();
@@ -47,6 +47,4 @@ eer_serial_handler_t eer_keyboard = {
     .transmit          = key_transmit,
     .receive           = key_receive,
 };
-
-
 

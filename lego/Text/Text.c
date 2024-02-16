@@ -50,6 +50,8 @@ RELEASE(Text)
     Font font = props->font;
     Symbol_new(dot);
 
+    if(!props->content) return;
+
     rlPushMatrix();
     rlTranslatef(props->pos.x, props->pos.y, props->pos.z);
 
