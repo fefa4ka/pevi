@@ -65,7 +65,7 @@ struct UI {
 // owner -> file
 // cell -> struct Cursor
 
-enum pevi_buffer { PEVI_BUF_FILE, PEVI_BUF_TERMINAL, PEVI_BUF_IMAGE };
+enum pevi_buffer { PEVI_BUF_TEXT, PEVI_BUF_FILE, PEVI_BUF_TERMINAL, PEVI_BUF_IMAGE };
 
 struct Buffer {
     enum pevi_buffer   type;

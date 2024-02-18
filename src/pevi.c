@@ -35,6 +35,7 @@ Menu(skm, _({.menu    = shortcuts,
 Menu_command_t commands[] = {{"fps", print_fps},
                              {"fovy", set_fovy, state.command},
                              {"w", buffer_save, state.command},
+                             {"e", file_open, state.command},
                              {"o", plane_open, state.command},
                              {"q", quit, state.command},
                              {"dump", buffer_dump},
@@ -210,6 +211,8 @@ void read_command(eer_t *uart)
         *command_symbol++ = (uint8_t)data;
     }
     *--command_symbol = 0;
+
+    state.key_buffer[0] = '\0';
 }
 
 struct Plane camera_plane(Camera *camera)
@@ -264,7 +267,7 @@ void enable_execute_mode(void *args)
     lr_data_t      data;
     struct Buffer *buffer;
     buffer = state.cursor.buffer;
-    if (buffer->type == PEVI_BUF_FILE) {
+    if (buffer->type == PEVI_BUF_TEXT) {
         char command[COMMAND_BUFFER_SIZE];
 
         struct linked_ring *lr = state.file_buffer;
@@ -318,7 +321,7 @@ void edit_mode_process()
 
         if (state.cursor.index != -1) {
             lr_pull(file_buffer, &data, lr_owner(state.cursor.plane),
-                    --state.cursor.index );
+                    --state.cursor.index);
         } else {
             lr_pop(file_buffer, &data, lr_owner(state.cursor.plane));
         }
@@ -447,44 +450,46 @@ int main(void)
 
             printf("Click\n");
             if (!is_drag_set) {
-                //SetMousePosition(GetScreenWidth() / 2, GetScreenHeight() / 2);
+                // SetMousePosition(GetScreenWidth() / 2, GetScreenHeight() /
+                // 2);
                 drag_cam = cam.state.camera;
 
                 printf("UPDATE\n");
                 is_drag_set = true;
             }
-	    if(GetMousePosition().x > GetScreenWidth() / 2)
-		    movement.y = fabs(GetScreenWidth() / 2 - GetMousePosition().x);
-	    else
-		    movement.y = (GetScreenWidth() / 2 - GetMousePosition().x) * -1;
+            if (GetMousePosition().x > GetScreenWidth() / 2)
+                movement.y = fabs(GetScreenWidth() / 2 - GetMousePosition().x);
+            else
+                movement.y = (GetScreenWidth() / 2 - GetMousePosition().x) * -1;
 
-	    if(GetMousePosition().y > GetScreenHeight() / 2)
-		    movement.z = fabs(GetScreenHeight() / 2 - GetMousePosition().y);
-	    else
-	    movement.z = (GetScreenHeight() / 2 - GetMousePosition().y) * -1;
+            if (GetMousePosition().y > GetScreenHeight() / 2)
+                movement.z = fabs(GetScreenHeight() / 2 - GetMousePosition().y);
+            else
+                movement.z
+                    = (GetScreenHeight() / 2 - GetMousePosition().y) * -1;
 
-	    movement.y*=2;
-	    movement.z*=2;
-        } else{
+            movement.y *= 2;
+            movement.z *= 2;
+        } else {
 
-		movement.y       = GetMouseDelta().x;
-		movement.z       = GetMouseDelta().y;
-	}
+            movement.y = GetMouseDelta().x;
+            movement.z = GetMouseDelta().y;
+        }
 
-        float   distance = Vector3Distance(drag_cam.position, drag_cam.target);
-        float   coeff    = distance / 2700;
-	movement.y = movement.y * coeff;
-	movement.z = movement.z  * -1 * coeff;
+        float distance = Vector3Distance(drag_cam.position, drag_cam.target);
+        float coeff    = distance / 2700;
+        movement.y     = movement.y * coeff;
+        movement.z     = movement.z * -1 * coeff;
 
         UpdateCameraPro(&drag_cam, movement, rotation, 0);
 
-        pln                        = camera_plane(&drag_cam);
-        state.cursor.plane->pos    = pln.pos;
+        pln                     = camera_plane(&drag_cam);
+        state.cursor.plane->pos = pln.pos;
 
-	// Saving original angles
-	if(!IsKeyDown(KEY_LEFT_CONTROL))
-		state.cursor.plane->angles = pln.angles;
-	
+        // Saving original angles
+        if (!IsKeyDown(KEY_LEFT_CONTROL))
+            state.cursor.plane->angles = pln.angles;
+
     } else {
         if (state.mode == PEVI_MODE_DRAG && is_drag_set == true) {
             state.mode  = PEVI_MODE_FREE;
@@ -517,23 +522,22 @@ int main(void)
                 for (owner_cell = lr_last_cell(file_buffer);
                      owner_cell >= file_buffer->owners; owner_cell--) {
 
+                    if (buffer->type == PEVI_BUF_TEXT) {
 
-                    lr_read_string(file_buffer, text,
-                                   lr_owner(owner_cell->data));
+                        lr_read_string(file_buffer, text,
+                                       lr_owner(owner_cell->data));
 
-                    Color tint;
-                    pln  = *(struct Plane *)owner_cell->data;
-                    tint = pln.tint;
+                        Color tint;
+                        pln  = *(struct Plane *)owner_cell->data;
+                        tint = pln.tint;
 
-                    if (state.mode == PEVI_MODE_EDIT
-                        && (struct Plane *)state.cursor.plane
-                               == (struct Plane *)owner_cell->data) {
-                        pln      = cam_plane;
-                        pln.tint = tint;
-                    }
+                        if (state.mode == PEVI_MODE_EDIT
+                            && (struct Plane *)state.cursor.plane
+                                   == (struct Plane *)owner_cell->data) {
+                            pln      = cam_plane;
+                            pln.tint = tint;
+                        }
 
-
-                    if (buffer->type == PEVI_BUF_FILE) {
 
                         bool is_selected;
                         // Selection

@@ -20,10 +20,11 @@ struct Buffer *buffer_init(size_t size)
     size_t         index  = state.buffer_nr;
     struct Buffer *buffer = malloc(sizeof(struct Buffer));
     //    struct linked_ring *buffer = malloc(sizeof(struct linked_ring));
-    struct lr_cell *cells = malloc(sizeof(struct lr_cell) * size);
-
-    lr_result_t result = lr_init(&buffer->lr, size, cells);
-    buffer->size       = size;
+    if(size) {
+	    struct lr_cell *cells = malloc(sizeof(struct lr_cell) * size);
+	    lr_result_t result = lr_init(&buffer->lr, size, cells);
+	    buffer->size       = size;
+    }
 
     if (state.buffer) {
 
@@ -81,6 +82,27 @@ void plane_clean(void *command)
 }
 
 #include <lr_file.h>
+void file_open(void *command) {
+    FILE           *file;
+    char            filename[COMMAND_BUFFER_SIZE];
+    char            text[BUFFER_SIZE];
+    struct lr_cell *owner_cell;
+    sscanf(command, "%*s %s", filename);
+
+    file = fopen(filename, "r");
+    if (file == NULL) {
+        fprintf(stderr, "Error opening file %s\n", filename);
+        return;
+    }
+
+    struct Buffer *buffer;
+    buffer       = buffer_init(0);
+    buffer->type = PEVI_BUF_FILE;
+    buffer->path = strdup(filename);
+    
+    lr_file_open(&buffer->lr, buffer->path, 0);
+}
+
 void plane_open(void *command)
 {
     FILE           *file;
