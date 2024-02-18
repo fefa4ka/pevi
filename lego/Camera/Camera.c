@@ -45,8 +45,13 @@ SHOULD_UPDATE(Camera)
             (move_updown * speed_factor) // Move up-down
         };
     }
-    float dx = GetMouseDelta().x * 0.2;
-    float dy = GetMouseDelta().y * 0.2;
+    float dx=0;    float dy=0;
+
+    if(props->is_mouse_enabled) {
+    dx = GetMouseDelta().x * 0.2;
+    dy = GetMouseDelta().y * 0.2;
+    }
+
 
     if (props->is_movable) {
         if (!dx)

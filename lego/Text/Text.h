@@ -15,23 +15,26 @@ typedef struct {
     char   *content;
     void *parent;
     lr_owner_t owner;
+    void *parent_arg;
+    Vector3 pos;
+    Vector2 angles;
     float   font_size;
     float   spacing;
     float   line_spacing;
-    Vector2 angles;
-    Vector3 pos;
     Camera *camera;
     bool is_selected;
     struct {
         void (*hover)(eer_t *instance);
         void (*click)(eer_t *instance);
+        void (*cursor)(eer_t *instance);
     } on;
 } Text_props_t;
 
 typedef struct {
-    Vector3 size;
     Vector3 pos;
+    Vector3 size;
     float scale;
+    bool is_selected;
 } Text_state_t;
 
 eer_header(Text);

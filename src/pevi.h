@@ -38,16 +38,19 @@ struct Plane {
 };
 
 struct PeviCursor {
+bool is_hovered;
     struct Plane       *plane;
-    struct linked_ring *buffer; // Text buffer
+    struct Buffer *buffer; // Text buffer
     struct lr_cell     *cell;   // selected cell
+    Vector3             position;
+    Vector3             size;
+    int                 index;
 };
 
 struct Selection {
     size_t             cursor_nr;
     struct PeviCursor *cursors;
 };
-
 
 struct UI {
     struct {
@@ -71,6 +74,7 @@ struct Buffer {
     size_t             size;
     struct linked_ring lr;
     struct lr_cell    *cells;
+    struct Plane       *plane;
 
     struct Buffer *prev;
     struct Buffer *next;

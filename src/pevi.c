@@ -18,12 +18,11 @@ Terminal_new(trm);
 
 
 // Shortcuts
-Menu_command_t shortcuts[] = {{":", enable_command_mode},
-                              {"i", enable_edit_mode},
-                              {"e", enable_execute_mode},
-                              {"m", enable_drag_mode},
-                              {"x", plane_clean},
-                              {0}};
+Menu_command_t shortcuts[]
+    = {{":", enable_command_mode}, {"i", enable_edit_mode},
+       {"e", enable_execute_mode}, {"m", enable_drag_mode},
+       {"x", plane_clean},         {0}};
+
 Menu(skm, _({.menu    = shortcuts,
              .command = state.key_buffer,
 
@@ -36,7 +35,7 @@ Menu(skm, _({.menu    = shortcuts,
 Menu_command_t commands[] = {{"fps", print_fps},
                              {"fovy", set_fovy, state.command},
                              {"w", buffer_save, state.command},
-                             {"e", plane_open, state.command},
+                             {"o", plane_open, state.command},
                              {"q", quit, state.command},
                              {"dump", buffer_dump},
                              {0}};
@@ -53,14 +52,40 @@ char text[BUFFER_SIZE] = {0}; //{'p', 'e', 'v', 'i', '\0'};
 
 void on_dot_hover(eer_t *symbol)
 {
-
+    // WARNING: Callback from Text and Symbol, props->parent, owner should be
+    // aligned
     eer_self(Symbol, symbol);
+    struct Buffer *buffer;
+    buffer = (struct Buffer *)self->props.parent;
 
     if (state.mode == PEVI_MODE_FREE) {
-        state.file_buffer
-            = (struct linked_ring *)(struct Plane *)self->props.parent;
-        state.cursor.plane = (struct Plane *)self->props.owner;
-        state.cursor.cell  = (struct lr_cell *)self->props.owner;
+        state.file_buffer     = &buffer->lr;
+        state.cursor.buffer   = buffer;
+        state.cursor.plane    = (struct Plane *)self->props.owner;
+        state.cursor.cell     = (struct lr_cell *)self->props.parent_arg;
+        state.cursor.index    = (size_t)self->props.parent_arg;
+        state.cursor.position = self->state.pos;
+        state.cursor.size     = self->state.size;
+
+        state.cursor.is_hovered = true;
+    }
+}
+
+void on_cursor_symbol_render(eer_t *symbol)
+{
+
+    // WARNING: Callback from Text and Symbol, props->parent, owner should be
+    // aligned
+    eer_self(Symbol, symbol);
+
+    struct Buffer *buffer;
+    buffer = (struct Buffer *)self->props.parent;
+
+    if (state.mode == PEVI_MODE_EDIT) {
+        state.file_buffer     = &buffer->lr;
+        state.cursor.index    = (size_t)self->props.parent_arg;
+        state.cursor.position = self->state.pos;
+        state.cursor.size     = self->state.size;
     }
 }
 
@@ -77,7 +102,11 @@ void render_start(eer_t *win)
 {
     // BeginMode3D(cam.state.camera); // FIXME: Blinking appears
 }
-void render_end(eer_t *win)
+bool      selection_mode   = false;
+Vector2   selection_start  = {0};
+Vector2   selection_finish = {0};
+Rectangle rec              = {0, 0, 0, 0};
+void      render_end(eer_t *win)
 {
     EndMode3D();
 
@@ -86,9 +115,45 @@ void render_end(eer_t *win)
     }
 
     if (state.mode == PEVI_MODE_COMMAND) {
-        DrawText(state.key_buffer, 10, GetScreenHeight() - 20, 10, GRAY);
+        DrawText(state.key_buffer, 10, GetScreenHeight() - 70, 30, WHITE);
     }
 
+    if (selection_mode) {
+        Vector2 start;
+        Vector2 finish;
+        if (selection_start.x > selection_finish.x) {
+            start.x  = selection_finish.x;
+            finish.x = selection_start.x;
+        } else {
+            start.x  = selection_start.x;
+            finish.x = selection_finish.x;
+        }
+        if (selection_start.y > selection_finish.y) {
+            start.y  = selection_finish.y;
+            finish.y = selection_start.y;
+        } else {
+            start.y  = selection_start.y;
+            finish.y = selection_finish.y;
+        }
+        rec.x      = start.x;
+        rec.y      = start.y;
+        rec.width  = (finish.x - start.x);
+        rec.height = (finish.y - start.y);
+
+        DrawRectangleRec(rec, Fade(GRAY, 0.5f));
+    }
+
+    if (state.cursor.is_hovered) {
+        char *path;
+        if (state.cursor.buffer) {
+            path = state.cursor.buffer->path;
+
+            if (path) {
+
+                DrawText(path, 10, GetScreenHeight() - 70, 30, WHITE);
+            }
+        }
+    }
     shell();
 }
 void on_shortcut(eer_t *menu)
@@ -165,12 +230,13 @@ void enable_edit_mode(void *args)
 
     if (!state.file_buffer) {
         struct Buffer *buffer;
-        buffer            = buffer_init(BUFFER_SIZE);
-        state.file_buffer = &buffer->lr;
+        buffer              = buffer_init(BUFFER_SIZE);
+        state.cursor.buffer = buffer;
+        state.file_buffer   = &buffer->lr;
     }
 
     state.cam.projection = CAMERA_ORTHOGRAPHIC;
-    if (state.cursor.cell) {
+    if (state.cursor.is_hovered) {
         return;
     }
 
@@ -193,12 +259,26 @@ void   enable_drag_mode(void *args)
 void enable_execute_mode(void *args)
 {
 
-    struct linked_ring *buffer = state.file_buffer;
-    if (state.cursor.cell) {
+    lr_data_t      data;
+    struct Buffer *buffer;
+    buffer = state.cursor.buffer;
+    if (buffer->type == PEVI_BUF_FILE) {
         char command[COMMAND_BUFFER_SIZE];
 
-        lr_read_string(buffer, command, lr_owner(state.cursor.plane));
-        run_command_interactively(command);
+        struct linked_ring *lr = state.file_buffer;
+        lr_read_string(lr, command, lr_owner(state.cursor.plane));
+        while (lr_get(lr, &data, lr_owner(state.cursor.plane)) == OK)
+            ;
+        run_shell(command);
+    } else if (buffer->type == PEVI_BUF_TERMINAL) {
+        while (lr_get(&buffer->lr, &data, lr_owner(state.cursor.plane)) == OK)
+            ;
+        pclose(buffer->fp);
+        buffer->fp = popen(buffer->path, "r");
+        int fd     = fileno(buffer->fp);
+        if (buffer->fp == NULL) {
+            exit(0);
+        }
     }
 }
 
@@ -208,6 +288,7 @@ void edit_mode_process()
     int key;
     int r = Serial_read(&input, &key);
 
+    state.cursor.is_hovered         = true;
     struct linked_ring *file_buffer = state.file_buffer;
     if (r) {
         key = 0;
@@ -216,7 +297,15 @@ void edit_mode_process()
     while (key > 0) {
         // NOTE: Only allow keys in range [32..125]
         if ((key >= 32) && (key <= 125)) {
-            lr_put(file_buffer, (char)key, lr_owner(state.cursor.plane));
+            if (state.cursor.index != -1) {
+                lr_insert(file_buffer, (char)key, lr_owner(state.cursor.plane),
+                          state.cursor.index++);
+                //            lr_insert_next(file_buffer, (char)key,
+                //            state.cursor.cell);
+            } else {
+
+                lr_put(file_buffer, (char)key, lr_owner(state.cursor.plane));
+            }
         }
 
         key = GetCharPressed(); // Check next character in the queue
@@ -224,7 +313,15 @@ void edit_mode_process()
 
     if (IsKeyPressed(KEY_BACKSPACE)) {
         int data;
-        lr_pop(file_buffer, &data, lr_owner(state.cursor.plane));
+
+        if (state.cursor.index != -1) {
+
+            lr_pull(file_buffer, &data, lr_owner(state.cursor.plane),
+                    state.cursor.index);
+            state.cursor.index--;
+        } else {
+            lr_pop(file_buffer, &data, lr_owner(state.cursor.plane));
+        }
     } else if (IsKeyPressed(KEY_ESCAPE)) {
         state.mode           = PEVI_MODE_FREE;
         state.cursor.plane   = 0;
@@ -238,6 +335,7 @@ void edit_mode_process()
         if (len < sizeof(text) - 1) {
             char command[COMMAND_BUFFER_SIZE];
             lr_read_string(file_buffer, command, lr_owner(state.cursor.plane));
+
             lr_put(file_buffer, (char)'\n', lr_owner(state.cursor.plane));
             //    run_shell(command);
         }
@@ -247,6 +345,29 @@ void edit_mode_process()
         if (len < sizeof(text) - 1) {
             lr_put(file_buffer, (char)'\t', lr_owner(state.cursor.plane));
         }
+    } else if (IsKeyPressed(KEY_LEFT)) {
+        state.cursor.index -= 1;
+    } else if (IsKeyPressed(KEY_RIGHT)) {
+        state.cursor.index += 1;
+    } else if (IsKeyPressed(KEY_UP)) {
+        int index = state.cursor.index;
+        while (index > 0) {
+            if (text[index] == '\n')
+                break;
+
+            index--;
+        }
+        state.cursor.index = --index;
+    } else if (IsKeyPressed(KEY_DOWN)) {
+        int           index = state.cursor.index;
+        unsigned long len   = strlen(text);
+        while (len > index) {
+            if (text[index] == '\n')
+                break;
+
+            index++;
+        }
+        state.cursor.index = ++index;
     }
 }
 
@@ -281,9 +402,39 @@ int main(void)
 
     //    state.file_buffer = &file_buffer;
 
+
     SetTargetFPS(30);
     // Main loop
     ignite(clk, win);
+
+    if (IsMouseButtonDown(0)) {
+        if (!selection_mode) {
+            selection_start = GetMousePosition();
+            selection_mode  = true;
+        } else {
+            selection_finish = GetMousePosition();
+        }
+    } else if (IsMouseButtonUp(0)) {
+        selection_mode = false;
+    }
+
+    if (IsKeyDown(KEY_LEFT_SHIFT) || state.mode == PEVI_MODE_DRAG) {
+        state.cam.is_mouse_enabled = true;
+    } else {
+
+        state.cam.is_mouse_enabled = false;
+    }
+
+    struct Plane cam_plane  = camera_plane(&cam.state.camera);
+    Vector3      cursor_pos = {0};
+
+    if (IsMouseButtonDown(1)) {
+        if (state.mode == PEVI_MODE_DRAG) {
+            state.mode = PEVI_MODE_FREE;
+        } else {
+            state.mode = PEVI_MODE_DRAG;
+        }
+    }
     apply(Camera, cam, _(state.cam));
 
     if (state.mode == PEVI_MODE_DRAG) {
@@ -292,14 +443,15 @@ int main(void)
         state.cursor.plane->pos    = pln.pos;
         state.cursor.plane->angles = pln.angles;
     }
-    state.cursor.cell = false;
+
+    state.cursor.is_hovered = false;
+
+    if (state.mode == PEVI_MODE_FREE)
+        state.cursor.index = -1;
 
 
     ClearBackground(BLANK);
 
-
-    struct Plane cam_plane  = camera_plane(&cam.state.camera);
-    Vector3      cursor_pos = {0};
 
     // Foreach opened buffers (e.g. files, terminals);
     struct Buffer *buffer;
@@ -332,29 +484,72 @@ int main(void)
 
 
                     if (buffer->type == PEVI_BUF_FILE) {
+
+                        bool is_selected;
+                        // Selection
+                        Rectangle text_rec;
+                        Matrix    transform;
+                        transform
+                            = MatrixTranslate(pln.pos.x, pln.pos.y, pln.pos.z);
+                        transform = MatrixMultiply(MatrixRotateY(pln.angles.y),
+                                                   transform);
+                        transform = MatrixMultiply(MatrixRotateX(pln.angles.x),
+                                                   transform);
+                        transform = MatrixMultiply(
+                            MatrixTranslate(txt.state.size.x, 0,
+                                            txt.state.size.z),
+                            transform);
+                        Vector3 finalPosition = {0, 0, 0};
+                        finalPosition
+                            = Vector3Transform(finalPosition, transform);
+                        Vector2 text_rec_pos
+                            = GetWorldToScreen(pln.pos, cam.state.camera);
+                        text_rec.x = text_rec_pos.x;
+                        text_rec.y = text_rec_pos.y;
+                        Vector2 text_rec_pos_right
+                            = GetWorldToScreen(finalPosition, cam.state.camera);
+                        text_rec.width  = text_rec_pos_right.x - text_rec_pos.x;
+                        text_rec.height = text_rec_pos_right.y - text_rec_pos.y;
+
+                        is_selected = false;
+                        if (CheckCollisionRecs(rec, text_rec)) {
+                            is_selected = true;
+                        }
+                        //
+
+
                         shoot(Text, txt,
-                              _({.font      = win.state.font,
-                                 .spacing   = 0.6f,
-                                 .tint      = BLACK,
-                                 .content   = text,
-                                 .parent    = (void *)file_buffer,
-                                 .owner     = owner_cell->data,
-                                 .font_size = 24.,
-                                 .angles    = pln.angles,
-                                 .pos       = pln.pos,
-                                 .camera    = &cam.state.camera,
-                                 .bg_color  = pln.tint,
-                                 .shader    = win.state.shader,
-                                 .on        = {.hover = on_dot_hover}}));
+                              _({.font        = win.state.font,
+                                 .spacing     = 0.6f,
+                                 .tint        = BLACK,
+                                 .content     = text,
+                                 .parent      = (void *)buffer,
+                                 .owner       = owner_cell->data,
+                                 .parent_arg  = (void *)state.cursor.index,
+                                 .font_size   = 24.,
+                                 .angles      = pln.angles,
+                                 .pos         = pln.pos,
+                                 .camera      = &cam.state.camera,
+                                 .bg_color    = pln.tint,
+                                 .shader      = win.state.shader,
+                                 .is_selected = is_selected,
+                                 .on          = {.hover  = on_dot_hover,
+                                                 .cursor = on_cursor_symbol_render}}));
                     }
 
 
                     if (state.mode == PEVI_MODE_EDIT
                         && (size_t)state.cursor.plane
                                == (size_t)owner_cell->data) {
-                        cursor_pos.x = txt.state.pos.x + 0.2;
-                        cursor_pos.y = txt.state.pos.y;
-                        cursor_pos.z = txt.state.size.z;
+                        if (state.cursor.index != -1) {
+                            cursor_pos = state.cursor.position;
+                            cursor_pos.x += state.cursor.size.x + 0.2;
+                            cursor_pos.z += state.cursor.size.z;
+                        } else {
+                            cursor_pos.x = txt.state.pos.x + 0.2;
+                            cursor_pos.y = txt.state.pos.y;
+                            cursor_pos.z = txt.state.size.z;
+                        }
                     }
                 }
             }
@@ -364,37 +559,38 @@ int main(void)
                 struct Plane *pln_ptr;
                 Color         tint;
 
-                if (buffer->lr.owners) {
-                    pln_ptr = (struct Plane *)buffer->lr.owners->data;
+                if (buffer->plane) {
+                    pln_ptr = buffer->plane;
                 } else {
                     state.planes[state.plane_nr] = cam_plane;
                     pln_ptr = &state.planes[state.plane_nr];
                     state.plane_nr += 1;
+                    buffer->plane = pln_ptr;
                 }
                 pln = *pln_ptr;
 
-    if (state.mode == PEVI_MODE_DRAG) {
-        struct Plane pln;
-        pln                        = camera_plane(&cam.state.camera);
-        state.cursor.plane->pos    = pln.pos;
-        state.cursor.plane->angles = pln.angles;
-    }
+                if (state.mode == PEVI_MODE_DRAG) {
+                    struct Plane pln;
+                    pln                     = camera_plane(&cam.state.camera);
+                    state.cursor.plane->pos = pln.pos;
+                    state.cursor.plane->angles = pln.angles;
+                }
                 shoot(Terminal, trm,
-                      _({
-                          .fp        = buffer->fp,
-                          .command   = buffer->path,
-                          .buffer    = &buffer->lr,
-                          .font      = win.state.font,
-                          .spacing   = 0.6f,
-                          .tint      = BLACK,
-                          .owner     = lr_owner(pln_ptr),
-                          .font_size = 24.,
-                          .angles    = pln.angles,
-                          .pos       = pln.pos,
-                          .camera    = &cam.state.camera,
-                          .bg_color  = pln.tint,
-                          .shader    = win.state.shader,
-                                 .on        = {.hover = on_dot_hover}
+                      _({.fp        = buffer->fp,
+                         .command   = buffer->path,
+                         .buffer    = &buffer->lr,
+                         .parent    = (void *)buffer,
+                         .font      = win.state.font,
+                         .spacing   = 0.6f,
+                         .tint      = BLACK,
+                         .owner     = lr_owner(pln_ptr),
+                         .font_size = 24.,
+                         .angles    = pln.angles,
+                         .pos       = pln.pos,
+                         .camera    = &cam.state.camera,
+                         .bg_color  = pln.tint,
+                         .shader    = win.state.shader,
+                         .on        = {.hover = on_dot_hover}
 
                       }));
             }

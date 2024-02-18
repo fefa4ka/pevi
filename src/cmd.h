@@ -21,7 +21,7 @@ void plane_open(void *command);
 void plane_clean(void *command);
 
 
-void run_command_interactively(char *command);
+void run_shell(char *command);
 
 void on_command(eer_t *menu);
 void on_command_not_found(eer_t *menu);

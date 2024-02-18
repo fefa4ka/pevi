@@ -14,12 +14,12 @@ typedef struct {
     char *content;
     void *parent;
     lr_owner_t owner;
-    size_t content_index;
+    void *parent_arg;
+    Vector3 pos;
+    Vector2 angles;
+    Vector3 absolute_pos;
     float   font_size;
     bool backface;
-    Vector3 pos;
-    Vector3 absolute_pos;
-    Vector2 angles;
     bool is_selected;
     bool is_hovered;
     Camera *camera;
@@ -30,11 +30,11 @@ typedef struct {
 } Symbol_props_t;
 
 typedef struct {
-	int codepoint;
-	int glyph;
     Vector3 pos;
     Vector3 size;
     float scale;
+	int codepoint;
+	int glyph;
 } Symbol_state_t;
 
 eer_header(Symbol);

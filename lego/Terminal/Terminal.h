@@ -14,6 +14,7 @@ typedef struct {
     FILE *fp;
     char   *command;
     struct linked_ring *buffer;
+    void *parent;
     lr_owner_t owner;
     bool is_visible;
     Camera *camera;

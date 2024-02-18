@@ -46,6 +46,9 @@ void buffer_save(void *command)
     FILE           *file;
     char           *filename[COMMAND_BUFFER_SIZE];
     char            text[BUFFER_SIZE];
+    struct Buffer *buffer;
+    struct linked_ring *lr;
+
     struct lr_cell *owner_cell;
     sscanf(command, "%*s %s", &filename);
 
@@ -54,11 +57,15 @@ void buffer_save(void *command)
         fprintf(stderr, "Error opening file %s\n", filename);
         return;
     }
+    buffer = state.cursor.buffer;
+    buffer->path = strdup(filename);
+    printf("%s- %s\n", filename, buffer->path);
+    lr = &buffer->lr;
 
-    for (owner_cell = lr_last_cell(state.file_buffer);
-         owner_cell >= state.file_buffer->owners; owner_cell--) {
+    for (owner_cell = lr_last_cell(lr);
+         owner_cell >= lr->owners; owner_cell--) {
 
-        lr_read_string(state.file_buffer, text, lr_owner(owner_cell->data));
+        lr_read_string(lr, text, lr_owner(owner_cell->data));
         fprintf(file, "%s\n", text);
     }
 
@@ -68,16 +75,17 @@ void buffer_save(void *command)
 void plane_clean(void *command)
 {
 	lr_data_t data;
+
 	while(lr_get(state.file_buffer, &data, lr_owner(state.cursor.plane)) == OK);
 }
 
 void plane_open(void *command)
 {
     FILE           *file;
-    char           *filename[COMMAND_BUFFER_SIZE];
+    char           filename[COMMAND_BUFFER_SIZE];
     char            text[BUFFER_SIZE];
     struct lr_cell *owner_cell;
-    sscanf(command, "%*s %s", &filename);
+    sscanf(command, "%*s %s", filename);
 
     file = fopen(filename, "r");
     if (file == NULL) {
@@ -87,7 +95,11 @@ void plane_open(void *command)
 
     struct Buffer *buffer;
     buffer            = buffer_init(BUFFER_SIZE);
+    buffer->path = strdup(filename);
+
     state.file_buffer = &buffer->lr;
+    state.cursor.buffer= buffer;
+
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
     while (fgets(text, sizeof(text), file) != NULL) {
@@ -95,33 +107,32 @@ void plane_open(void *command)
     }
 
     fclose(file);
+
+        state.mode           = PEVI_MODE_FREE;
+        state.cursor.plane   = 0;
+        state.cam.is_enabled = true;
+        state.cam.projection = CAMERA_PERSPECTIVE;
 }
 
 
 void run_shell(char *command)
 {
-    FILE *fp;
-    char  path[1035];
+    state.cursor.cell = 0;
 
-    /* Open the command for reading. */
-    fp = popen(command, "r");
-    if (fp == NULL) {
+    struct Buffer *buffer;
+    buffer       = buffer_init(BUFFER_SIZE);
+    buffer->type = PEVI_BUF_TERMINAL;
+    buffer->path = strdup(command);
+    buffer->plane= state.cursor.plane;
 
-        lr_put(state.file_buffer, (char)'\n', lr_owner(state.cursor.plane));
 
-        lr_put_string(state.file_buffer, "Failed to run command\n",
-                      lr_owner(state.cursor.plane));
+    buffer->fp = popen(buffer->path, "r");
+
+    int fd = fileno(buffer->fp);
+    if (buffer->fp == NULL) {
+        return;
     }
 
-    /* Read the output a line at a time - output it. */
-    while (fgets(path, sizeof(path), fp) != NULL) {
-        lr_put_string(state.file_buffer, path, lr_owner(state.cursor.plane));
-    }
-
-    /* close */
-    pclose(fp);
-    state.cam.is_movable = true;
-    state.mode           = PEVI_MODE_FREE;
 }
 
 void run_shell_interactive(char *command)
@@ -248,32 +259,12 @@ void on_command(eer_t *menu)
 
 void on_command_not_found(eer_t *menu)
 {
-    state.cursor.cell = 0;
-
-    struct linked_ring *prev_buffer = state.file_buffer;
-
-    struct Buffer *buffer;
-    buffer       = buffer_init(BUFFER_SIZE);
-    buffer->type = PEVI_BUF_TERMINAL;
-    buffer->path = strdup(state.command);
-
-    state.file_buffer = &buffer->lr;
-
-    buffer->fp = popen(buffer->path, "r");
-
-    int fd = fileno(buffer->fp);
-    if (buffer->fp == NULL) {
-        return;
-    }
-
     *state.command = 0;
 
-    state.file_buffer = prev_buffer;
     state.mode           = PEVI_MODE_FREE;
-    state.cursor.plane   = 0;
-    state.cam.is_enabled = true;
     state.cam.is_movable = true;
-    state.cam.projection = CAMERA_PERSPECTIVE;
+
+
 }
 
 void buffer_dump(void *command) { lr_dump(&state.cmd_buffer); }

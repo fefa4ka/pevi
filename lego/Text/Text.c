@@ -100,11 +100,12 @@ RELEASE(Text)
     DrawCubeV((Vector3){state->size.x / 2, -0.15, state->size.z / 2},
               state->size, props->bg_color);
 
-    if (collision.hit) {
+    if (collision.hit || props->is_selected) {
 
         if (collision.hit && props->on.hover)
             props->on.hover(self);
 
+	state->is_selected = true;
         DrawCubeWiresV((Vector3){state->size.x / 2, -0.15, state->size.z / 2},
                        state->size, BLACK);
     }
@@ -132,8 +133,11 @@ RELEASE(Text)
                      .owner         = props->owner,
                      .is_hovered    = collision.hit,
                      .shader        = props->shader,
-                     .content_index = index}));
+                     .parent_arg = (void*)index}));
 
+        if ((int)props->parent_arg != -1 && index == (size_t)props->parent_arg && props->on.cursor) {
+		props->on.cursor(&dot);
+	}
 
             state->pos.x += dot.state.size.x
                             + props->spacing / font.baseSize * state->scale;

@@ -110,7 +110,12 @@ void lr_set_mutex(struct linked_ring *lr, struct lr_mutex_attr *attr);
 
 lr_result_t lr_get(struct linked_ring *, lr_data_t *, lr_owner_t requested_owner);
 lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner);
+lr_result_t lr_pull(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner, size_t index);
+
 lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_owner_t owner);
+lr_result_t lr_insert(struct linked_ring *lr, lr_data_t data, lr_owner_t owner, size_t index);
+lr_result_t lr_insert_next(struct linked_ring *lr, lr_data_t data, struct lr_cell *needle);
+
 //lr_result_t lr_put_next(struct linked_ring *lr, lr_cell *cell, lr_data_t data, lr_owner_t owner);
 lr_result_t lr_put_string(struct linked_ring *lr, unsigned char *data,
                            lr_owner_t owner);
