@@ -63,7 +63,7 @@ void on_dot_hover(eer_t *symbol)
         state.cursor.buffer   = buffer;
         state.cursor.plane    = (struct Plane *)self->props.owner;
         state.cursor.cell     = (struct lr_cell *)self->props.parent_arg;
-        state.cursor.index    = (size_t)self->props.parent_arg;
+        state.cursor.index    = (size_t)self->props.parent_arg + 1;
         state.cursor.position = self->state.pos;
         state.cursor.size     = self->state.size;
 
@@ -318,8 +318,7 @@ void edit_mode_process()
 
         if (state.cursor.index != -1) {
             lr_pull(file_buffer, &data, lr_owner(state.cursor.plane),
-                    state.cursor.index);
-            state.cursor.index--;
+                    --state.cursor.index );
         } else {
             lr_pop(file_buffer, &data, lr_owner(state.cursor.plane));
         }
