@@ -4,7 +4,7 @@ project(lr VERSION 1.0
     DESCRIPTION "Linked Ring Data Structure"
     LANGUAGES C)
 
-add_library(lr STATIC src/lr.c)
+add_library(lr STATIC src/lr.c src/lr_file.c)
 target_include_directories(lr PUBLIC include)
 
 enable_testing()

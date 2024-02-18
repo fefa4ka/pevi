@@ -195,8 +195,10 @@ void read_symbol(eer_t *uart_ptr)
         lr_pop(&state.cmd_buffer, &data,
                lr_owner(eer_prop(Serial, &input, handler)->receive));
     }
-    lr_read_string(&state.cmd_buffer, state.key_buffer,
-                   lr_owner(eer_prop(Serial, &input, handler)->receive));
+
+    if (state.mode != PEVI_MODE_EDIT)
+        lr_read_string(&state.cmd_buffer, state.key_buffer,
+                       lr_owner(eer_prop(Serial, &input, handler)->receive));
 }
 
 
@@ -315,7 +317,6 @@ void edit_mode_process()
         int data;
 
         if (state.cursor.index != -1) {
-
             lr_pull(file_buffer, &data, lr_owner(state.cursor.plane),
                     state.cursor.index);
             state.cursor.index--;
@@ -399,6 +400,8 @@ int main(void)
                                  CAMERA_PERSPECTIVE,
                                  CAMERA_THIRD_PERSON,
                                  true};
+    bool   is_drag_set;
+    Camera drag_cam;
 
     //    state.file_buffer = &file_buffer;
 
@@ -418,7 +421,7 @@ int main(void)
         selection_mode = false;
     }
 
-    if (IsKeyDown(KEY_LEFT_SHIFT) || state.mode == PEVI_MODE_DRAG) {
+    if (IsKeyDown(KEY_LEFT_SHIFT) /* || state.mode == PEVI_MODE_DRAG*/) {
         state.cam.is_mouse_enabled = true;
     } else {
 
@@ -428,21 +431,70 @@ int main(void)
     struct Plane cam_plane  = camera_plane(&cam.state.camera);
     Vector3      cursor_pos = {0};
 
+    struct Plane pln;
+    if (state.mode == PEVI_MODE_DRAG && !is_drag_set) {
+        //       pln                        = camera_plane(&cam.state.camera);
+        //       state.cursor.plane->pos    = pln.pos;
+        //       state.cursor.plane->angles = pln.angles;
+    }
+
     if (IsMouseButtonDown(1)) {
-        if (state.mode == PEVI_MODE_DRAG) {
-            state.mode = PEVI_MODE_FREE;
-        } else {
+
+        Vector3 movement = {0};
+        Vector3 rotation = {0};
+
+        if (state.mode != PEVI_MODE_DRAG) {
             state.mode = PEVI_MODE_DRAG;
+
+            printf("Click\n");
+            if (!is_drag_set) {
+                //SetMousePosition(GetScreenWidth() / 2, GetScreenHeight() / 2);
+                drag_cam = cam.state.camera;
+
+                printf("UPDATE\n");
+                is_drag_set = true;
+            }
+	    if(GetMousePosition().x > GetScreenWidth() / 2)
+		    movement.y = fabs(GetScreenWidth() / 2 - GetMousePosition().x);
+	    else
+		    movement.y = (GetScreenWidth() / 2 - GetMousePosition().x) * -1;
+
+	    if(GetMousePosition().y > GetScreenHeight() / 2)
+		    movement.z = fabs(GetScreenHeight() / 2 - GetMousePosition().y);
+	    else
+	    movement.z = (GetScreenHeight() / 2 - GetMousePosition().y) * -1;
+
+	    movement.y*=2;
+	    movement.z*=2;
+        } else{
+
+		movement.y       = GetMouseDelta().x;
+		movement.z       = GetMouseDelta().y;
+	}
+
+        float   distance = Vector3Distance(drag_cam.position, drag_cam.target);
+        float   coeff    = distance / 2700;
+	movement.y = movement.y * coeff;
+	movement.z = movement.z  * -1 * coeff;
+
+        UpdateCameraPro(&drag_cam, movement, rotation, 0);
+
+        pln                        = camera_plane(&drag_cam);
+        state.cursor.plane->pos    = pln.pos;
+
+	// Saving original angles
+	if(!IsKeyDown(KEY_LEFT_CONTROL))
+		state.cursor.plane->angles = pln.angles;
+	
+    } else {
+        if (state.mode == PEVI_MODE_DRAG && is_drag_set == true) {
+            state.mode  = PEVI_MODE_FREE;
+            is_drag_set = false;
         }
     }
+
     apply(Camera, cam, _(state.cam));
 
-    if (state.mode == PEVI_MODE_DRAG) {
-        struct Plane pln;
-        pln                        = camera_plane(&cam.state.camera);
-        state.cursor.plane->pos    = pln.pos;
-        state.cursor.plane->angles = pln.angles;
-    }
 
     state.cursor.is_hovered = false;
 
@@ -470,8 +522,7 @@ int main(void)
                     lr_read_string(file_buffer, text,
                                    lr_owner(owner_cell->data));
 
-                    struct Plane pln;
-                    Color        tint;
+                    Color tint;
                     pln  = *(struct Plane *)owner_cell->data;
                     tint = pln.tint;
 

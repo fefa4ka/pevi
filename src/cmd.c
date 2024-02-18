@@ -43,10 +43,10 @@ struct Buffer *buffer_init(size_t size)
 
 void buffer_save(void *command)
 {
-    FILE           *file;
-    char           *filename[COMMAND_BUFFER_SIZE];
-    char            text[BUFFER_SIZE];
-    struct Buffer *buffer;
+    FILE               *file;
+    char               *filename[COMMAND_BUFFER_SIZE];
+    char                text[BUFFER_SIZE];
+    struct Buffer      *buffer;
     struct linked_ring *lr;
 
     struct lr_cell *owner_cell;
@@ -57,13 +57,13 @@ void buffer_save(void *command)
         fprintf(stderr, "Error opening file %s\n", filename);
         return;
     }
-    buffer = state.cursor.buffer;
+    buffer       = state.cursor.buffer;
     buffer->path = strdup(filename);
     printf("%s- %s\n", filename, buffer->path);
     lr = &buffer->lr;
 
-    for (owner_cell = lr_last_cell(lr);
-         owner_cell >= lr->owners; owner_cell--) {
+    for (owner_cell = lr_last_cell(lr); owner_cell >= lr->owners;
+         owner_cell--) {
 
         lr_read_string(lr, text, lr_owner(owner_cell->data));
         fprintf(file, "%s\n", text);
@@ -74,15 +74,17 @@ void buffer_save(void *command)
 
 void plane_clean(void *command)
 {
-	lr_data_t data;
+    lr_data_t data;
 
-	while(lr_get(state.file_buffer, &data, lr_owner(state.cursor.plane)) == OK);
+    while (lr_get(state.file_buffer, &data, lr_owner(state.cursor.plane)) == OK)
+        ;
 }
 
+#include <lr_file.h>
 void plane_open(void *command)
 {
     FILE           *file;
-    char           filename[COMMAND_BUFFER_SIZE];
+    char            filename[COMMAND_BUFFER_SIZE];
     char            text[BUFFER_SIZE];
     struct lr_cell *owner_cell;
     sscanf(command, "%*s %s", filename);
@@ -94,11 +96,11 @@ void plane_open(void *command)
     }
 
     struct Buffer *buffer;
-    buffer            = buffer_init(BUFFER_SIZE);
+    buffer       = buffer_init(BUFFER_SIZE);
     buffer->path = strdup(filename);
 
-    state.file_buffer = &buffer->lr;
-    state.cursor.buffer= buffer;
+    state.file_buffer   = &buffer->lr;
+    state.cursor.buffer = buffer;
 
     enable_edit_mode(0);
     /* Read the output a line at a time - output it. */
@@ -108,10 +110,13 @@ void plane_open(void *command)
 
     fclose(file);
 
-        state.mode           = PEVI_MODE_FREE;
-        state.cursor.plane   = 0;
-        state.cam.is_enabled = true;
-        state.cam.projection = CAMERA_PERSPECTIVE;
+    state.mode           = PEVI_MODE_FREE;
+    state.cursor.plane   = 0;
+    state.cam.is_enabled = true;
+    state.cam.projection = CAMERA_PERSPECTIVE;
+
+
+    exit(0);
 }
 
 
@@ -120,10 +125,10 @@ void run_shell(char *command)
     state.cursor.cell = 0;
 
     struct Buffer *buffer;
-    buffer       = buffer_init(BUFFER_SIZE);
-    buffer->type = PEVI_BUF_TERMINAL;
-    buffer->path = strdup(command);
-    buffer->plane= state.cursor.plane;
+    buffer        = buffer_init(BUFFER_SIZE);
+    buffer->type  = PEVI_BUF_TERMINAL;
+    buffer->path  = strdup(command);
+    buffer->plane = state.cursor.plane;
 
 
     buffer->fp = popen(buffer->path, "r");
@@ -132,7 +137,6 @@ void run_shell(char *command)
     if (buffer->fp == NULL) {
         return;
     }
-
 }
 
 void run_shell_interactive(char *command)
@@ -263,8 +267,6 @@ void on_command_not_found(eer_t *menu)
 
     state.mode           = PEVI_MODE_FREE;
     state.cam.is_movable = true;
-
-
 }
 
 void buffer_dump(void *command) { lr_dump(&state.cmd_buffer); }

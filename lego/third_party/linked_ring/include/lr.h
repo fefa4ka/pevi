@@ -126,5 +126,8 @@ lr_result_t lr_read_string(struct linked_ring *lr, unsigned char *data,
 
 lr_result_t lr_get(struct linked_ring *, lr_data_t *, lr_owner_t requested_owner);
 
+struct lr_cell *lr_owner_find(struct linked_ring *lr, lr_data_t owner);
+struct lr_cell *lr_owner_allocate(struct linked_ring *lr);
+
 /* not thread-safe */
 lr_result_t lr_dump(struct linked_ring *lr);

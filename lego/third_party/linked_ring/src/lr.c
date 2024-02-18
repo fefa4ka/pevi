@@ -93,7 +93,11 @@ struct lr_cell *lr_owner_head(struct linked_ring *lr,
     } else {
         /* For any other cell, the prev owner is used for head linkage */
         prev_owner = owner_cell + 1; /* Owners stored in reverse oreder */
-        head       = prev_owner->next->next;
+
+        while (prev_owner->next == NULL) {
+            prev_owner += 1;
+        }
+        head = prev_owner->next->next;
     }
 
     return head;
@@ -194,7 +198,13 @@ struct lr_cell *lr_owner_allocate(struct linked_ring *lr)
     if (lr->owners) {
         /* Look up the owner cell starting from the next cell of the owners
          * array */
-        needle = lr_cell_lookup(lr, lr->owners->next, owner_cell);
+	    struct lr_cell *owner_needle;
+
+	    owner_needle = lr->owners;
+		while (owner_needle->next == NULL) {
+		    owner_needle += 1;
+		}
+        needle = lr_cell_lookup(lr, owner_needle->next, owner_cell);
 
         /* If the owner cell is found, return it */
         if (needle)
@@ -361,9 +371,9 @@ lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_data_t owner)
     lock(lr);
 
     owner_cell = lr_owner_find(lr, owner);
-    if(owner_cell && lr->write == NULL) {
+    if (owner_cell && lr->write == NULL) {
         lr_data_t data;
-	lr_get(lr, &data, owner);
+        lr_get(lr, &data, owner);
     }
 
     if (lr->write == NULL) {
@@ -390,7 +400,11 @@ lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_data_t owner)
         /* If new owner */
         if (owner_cell < lr_last_cell(lr)) {
             /* If prev owner exists */
-            prev_owner             = owner_cell + 1;
+            prev_owner = owner_cell + 1;
+
+            while (prev_owner->next == NULL) {
+                prev_owner += 1;
+            }
             chain                  = prev_owner->next->next;
             cell->next             = chain;
             prev_owner->next->next = cell;
@@ -405,9 +419,10 @@ lr_result_t lr_put(struct linked_ring *lr, lr_data_t data, lr_data_t owner)
     unlock_and_return(lr, LR_OK);
 }
 
-lr_result_t lr_insert_next(struct linked_ring *lr, lr_data_t data, struct lr_cell *needle)
+lr_result_t lr_insert_next(struct linked_ring *lr, lr_data_t data,
+                           struct lr_cell *needle)
 {
-	size_t cell_index;
+    size_t          cell_index;
     struct lr_cell *cell;
 
 
@@ -422,15 +437,16 @@ lr_result_t lr_insert_next(struct linked_ring *lr, lr_data_t data, struct lr_cel
 
     cell->data = data;
 
-    cell->next = needle->next;
+    cell->next   = needle->next;
     needle->next = cell;
 
     unlock_and_return(lr, LR_OK);
 }
 
-lr_result_t lr_insert(struct linked_ring *lr, lr_data_t data, lr_data_t owner, size_t index)
+lr_result_t lr_insert(struct linked_ring *lr, lr_data_t data, lr_data_t owner,
+                      size_t index)
 {
-	size_t cell_index;
+    size_t          cell_index;
     struct lr_cell *head;
     struct lr_cell *needle;
     struct lr_cell *tail;
@@ -444,9 +460,9 @@ lr_result_t lr_insert(struct linked_ring *lr, lr_data_t data, lr_data_t owner, s
     lock(lr);
 
     owner_cell = lr_owner_find(lr, owner);
-    if(owner_cell && lr->write == NULL) {
+    if (owner_cell && lr->write == NULL) {
         lr_data_t data;
-	lr_get(lr, &data, owner);
+        lr_get(lr, &data, owner);
     }
 
     if (lr->write == NULL) {
@@ -465,22 +481,37 @@ lr_result_t lr_insert(struct linked_ring *lr, lr_data_t data, lr_data_t owner, s
     } else {
         prev_owner = owner_cell + 1;
     }
-    head  = prev_owner->next->next;
+    while (prev_owner->next == NULL) {
+        prev_owner += 1;
+    }
+    head = prev_owner->next->next;
     tail = lr_owner_tail(owner_cell);
+
+    if (!tail) {
+        return lr_put(lr, data, owner);
+    }
 
     cell      = lr->write;
     lr->write = lr->write->next;
 
     cell->data = data;
 
-    needle = head;
-    cell_index = 0;
-    while (cell_index != index && needle != tail) {
-	    needle = needle->next;
-	    cell_index++;
+    if (index == 0) {
+        needle = prev_owner->next;
+    } else {
+        needle     = head;
+        cell_index = 1;
+        while (cell_index != index && needle != tail) {
+            needle = needle->next;
+            cell_index++;
+        }
     }
 
-    cell->next = needle->next;
+    if (needle == tail) {
+        owner_cell->next = cell;
+    }
+
+    cell->next   = needle->next;
     needle->next = cell;
 
     unlock_and_return(lr, LR_OK);
@@ -535,6 +566,10 @@ lr_result_t lr_read_string(struct linked_ring *lr, unsigned char *data,
     } else {
         prev_owner = owner_cell + 1;
     }
+    while (prev_owner->next == NULL) {
+
+        prev_owner += 1;
+    }
     head   = prev_owner->next->next;
     tail   = lr_owner_tail(owner_cell);
     needle = head;
@@ -576,6 +611,9 @@ lr_result_t lr_get(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
         prev_owner = lr->owners;
     } else {
         prev_owner = owner_cell + 1;
+    }
+    while (prev_owner->next == NULL) {
+        prev_owner += 1;
     }
     head                   = prev_owner->next->next;
     prev_owner->next->next = head->next;
@@ -629,6 +667,9 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     } else {
         prev_owner = owner_cell + 1;
     }
+    while (prev_owner->next == NULL) {
+        prev_owner += 1;
+    }
     head  = prev_owner->next->next;
     tail  = lr_owner_tail(owner_cell);
     *data = tail->data;
@@ -642,7 +683,7 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
             *owner_swap                = *next_owner;
         }
 
-        if (prev_owner != owner_cell) 
+        if (prev_owner != owner_cell)
             prev_owner->next->next = tail->next;
 
         lr->owners->next = lr->write;
@@ -673,9 +714,10 @@ lr_result_t lr_pop(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner)
     unlock_and_return(lr, LR_OK);
 }
 
-lr_result_t lr_pull(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner, size_t index)
+lr_result_t lr_pull(struct linked_ring *lr, lr_data_t *data, lr_owner_t owner,
+                    size_t index)
 {
-size_t needle_index;
+    size_t          needle_index;
     struct lr_cell *head;
     struct lr_cell *needle;
     struct lr_cell *selected;
@@ -697,6 +739,10 @@ size_t needle_index;
     } else {
         prev_owner = owner_cell + 1;
     }
+
+    while (prev_owner->next == NULL) {
+        prev_owner += 1;
+    }
     head  = prev_owner->next->next;
     tail  = lr_owner_tail(owner_cell);
     *data = tail->data;
@@ -710,7 +756,7 @@ size_t needle_index;
             *owner_swap                = *next_owner;
         }
 
-        if (prev_owner != owner_cell) 
+        if (prev_owner != owner_cell)
             prev_owner->next->next = tail->next;
 
         lr->owners->next = lr->write;
@@ -724,20 +770,20 @@ size_t needle_index;
     }
 
 
-    needle = head;
+    needle       = head;
     needle_index = 0;
-    while(++needle_index != index) {
-            needle = needle->next;
+    while (++needle_index != index) {
+        needle = needle->next;
     }
-// Check if index exsits
-	    if(needle== tail) {
-	    }
-selected = needle->next;
-            needle->next     = selected->next;
+    // Check if index exsits
+    if (needle == tail) {
+    }
+    selected     = needle->next;
+    needle->next = selected->next;
 
 
     selected->next = lr->write;
-    lr->write  = selected;
+    lr->write      = selected;
 
     unlock_and_return(lr, LR_OK);
 }
