@@ -141,10 +141,48 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
   }
 }
 
+// Calculate new position for phantom during drag operation
+static Vector3 phantom_drag_position_calculate(Camera_t *camera, Vector3 current_pos) {
+  // Get the ray from camera to mouse position
+  Ray ray = GetMouseRay(GetMousePosition(), camera->camera);
+  
+  // Define a plane perpendicular to the camera view for dragging
+  // This creates a plane at the phantom's current position
+  Vector3 plane_normal = Vector3Normalize(Vector3Subtract(camera->camera.position, camera->camera.target));
+  float plane_distance = Vector3DotProduct(current_pos, plane_normal);
+  
+  // Calculate intersection of ray with the plane
+  float denominator = Vector3DotProduct(ray.direction, plane_normal);
+  if (fabs(denominator) < 0.0001f) {
+    // Ray is parallel to plane, no intersection
+    return current_pos;
+  }
+  
+  float t = (plane_distance - Vector3DotProduct(ray.position, plane_normal)) / denominator;
+  if (t < 0) {
+    // Intersection is behind the camera
+    return current_pos;
+  }
+  
+  // Calculate intersection point
+  Vector3 intersection = Vector3Add(ray.position, Vector3Scale(ray.direction, t));
+  
+  // Apply some smoothing/damping to make movement less jerky
+  const float smoothing = 0.5f;
+  Vector3 new_pos = {
+    current_pos.x + (intersection.x - current_pos.x) * smoothing,
+    current_pos.y + (intersection.y - current_pos.y) * smoothing,
+    current_pos.z + (intersection.z - current_pos.z) * smoothing
+  };
+  
+  return new_pos;
+}
+
 // Handles input events when the phantom is hovered.
-static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event) {
+static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event, Camera_t *camera) {
   if (phantom->is_hovered && event->source_type != INPUT_SOURCE_SYMBOL) {
     event->source_type = INPUT_SOURCE_PHANTOM;
+    
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_CLICK;
       phantom->is_selected = !phantom->is_selected;
@@ -158,9 +196,21 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event) {
       }
       
       LOG_DEBUG("CLICK phantom %d", phantom->is_selected);
-    } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && phantom->is_selected) {
       event->mouse = INPUT_MOUSE_DRAG;
-      LOG_DEBUG("DRAG phantom");
+      
+      // Only reposition in free mode
+      extern Pevi_t pevi;
+      if (pevi.mode == PEVI_MODE_FREE) {
+        // Calculate new position based on mouse movement
+        Vector3 new_pos = phantom_drag_position_calculate(camera, phantom->plane.pos);
+        
+        // Update phantom position
+        phantom->plane.pos = new_pos;
+        
+        LOG_DEBUG("DRAG phantom to position: %.2f, %.2f, %.2f", 
+                 new_pos.x, new_pos.y, new_pos.z);
+      }
     } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_RELEASE;
       LOG_DEBUG("RELEASE phantom");
@@ -211,7 +261,7 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
 
   // Handle input events for the phantom.
   if (phantom->is_hovered) {
-    phantom_event_handle(phantom, event);
+    phantom_event_handle(phantom, event, camera);
   }
   
   // Check if this phantom contains the plane that was clicked on a symbol
