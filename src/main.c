@@ -68,11 +68,45 @@ void new_phantom(void *arg) {
   }
 }
 
+// Open a file as a new phantom
+void open_file(void *arg) {
+  if (!arg || !pevi.phantoms) return;
+  
+  const char *filename = (const char *)arg;
+  LOG_INFO("Opening file: %s", filename);
+  
+  // Create a new phantom for the file
+  PhantomNode_t *node = phantom_list_create_phantom(pevi.phantoms, filename);
+  if (!node || !node->phantom) {
+    LOG_ERROR("Failed to create phantom for file: %s", filename);
+    return;
+  }
+  
+  // Set up the phantom
+  node->phantom->font.font = font_default;
+  node->phantom->plane = camera_plane(&camera.camera);
+  
+  // Position the new phantom to the right of the active one
+  Phantom_t *active = phantom_list_get_active(pevi.phantoms);
+  if (active) {
+    node->phantom->plane.pos.x = active->plane.pos.x + 5.0f;
+  }
+  
+  // Make the new phantom active
+  phantom_list_set_active(pevi.phantoms, node);
+  LOG_INFO("Opened file as phantom: %s", filename);
+  
+  // Return to free mode
+  pevi.mode = PEVI_MODE_FREE;
+  camera_set_mode(&camera, PEVI_MODE_FREE);
+}
+
 Command_t commands[] = {
     {"q", quit, &pevi.command_buffer},
     {"n", next_phantom, NULL},
     {"p", prev_phantom, NULL},
     {"new", new_phantom, NULL},
+    {"e", open_file, NULL},  // 'e' command for opening files
     {0} // End marker
 };
 

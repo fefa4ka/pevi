@@ -37,12 +37,37 @@ static void command_buffer_execute(CommandBuffer_t *cb) {
     return;
   }
 
+  // Parse the command and arguments
+  char cmd[COMMAND_BUFFER_SIZE] = {0};
+  char arg[COMMAND_BUFFER_SIZE] = {0};
+  
+  // Extract command and argument (if any)
+  char *space_pos = strchr(cb->buffer, ' ');
+  if (space_pos) {
+    // Command with argument
+    int cmd_len = space_pos - cb->buffer;
+    strncpy(cmd, cb->buffer, cmd_len);
+    cmd[cmd_len] = '\0';
+    
+    // Skip any extra spaces
+    while (*space_pos == ' ') space_pos++;
+    
+    // Copy the argument
+    strcpy(arg, space_pos);
+  } else {
+    // Command without argument
+    strcpy(cmd, cb->buffer);
+  }
+  
   bool command_found = false;
   for (int i = 0; commands[i].name != NULL; i++) {
-    if (strcmp(commands[i].name, cb->buffer) == 0) {
-      // Execute the command function, passing the argument if available.
+    if (strcmp(commands[i].name, cmd) == 0) {
+      // Execute the command function
       if (commands[i].command_function) {
-        commands[i].command_function(commands[i].arg);
+        // If command has an argument in the buffer, use it
+        // Otherwise use the default argument from the command table
+        void *command_arg = *arg ? (void*)arg : commands[i].arg;
+        commands[i].command_function(command_arg);
         command_found = true;
         break;
       } else {
@@ -53,7 +78,7 @@ static void command_buffer_execute(CommandBuffer_t *cb) {
   
   if (!command_found) {
     ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_WARNING, "Unknown command");
-    LOG_WARNING("Unknown command: %s", cb->buffer);
+    LOG_WARNING("Unknown command: %s", cmd);
   }
   
   // Clear the buffer for the next command.

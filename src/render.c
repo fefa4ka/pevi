@@ -30,16 +30,44 @@ bool render_frame(Pevi_t *pevi, Camera3D camera, render_body_fn Render3DBody,
 }
 
 void render_status_bar(Pevi_t *pevi) {
-  char path[] = "STATUS BAR";
+  char mode_str[32] = {0};
+  
+  // Show current mode
+  switch(pevi->mode) {
+    case PEVI_MODE_FREE:
+      strcpy(mode_str, "FREE");
+      break;
+    case PEVI_MODE_EDIT:
+      strcpy(mode_str, "EDIT");
+      break;
+    case PEVI_MODE_COMMAND:
+      strcpy(mode_str, "COMMAND");
+      break;
+    default:
+      strcpy(mode_str, "UNKNOWN");
+      break;
+  }
+  
   if (pevi->is_fps_visible) {
     DrawFPS(10, 10);
   }
-  char *bar_content = path;
-
-  if(pevi->mode == PEVI_MODE_COMMAND) {
-	  bar_content = pevi->command_buffer.buffer;
+  
+  // Show active phantom info if available
+  Phantom_t *active = phantom_list_get_active(pevi->phantoms);
+  char status_text[256] = {0};
+  
+  if (active && active->buffer && active->buffer->path) {
+    snprintf(status_text, sizeof(status_text), "[%s] %s", mode_str, active->buffer->path);
+  } else {
+    snprintf(status_text, sizeof(status_text), "[%s]", mode_str);
   }
-  DrawText(bar_content, 10, GetScreenHeight() - 70, 30, WHITE);
+  
+  // In command mode, show the command buffer
+  if(pevi->mode == PEVI_MODE_COMMAND) {
+    snprintf(status_text, sizeof(status_text), ":%s", pevi->command_buffer.buffer);
+  }
+  
+  DrawText(status_text, 10, GetScreenHeight() - 70, 30, WHITE);
 }
 
 void render_ui(Pevi_t *pevi) { render_status_bar(pevi); }
