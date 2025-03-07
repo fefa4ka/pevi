@@ -12,7 +12,7 @@ typedef struct PhantomNode {
 } PhantomNode_t;
 
 // Phantom list structure
-typedef struct {
+typedef struct PhantomList_s {
     PhantomNode_t *head;          // First node in the list
     PhantomNode_t *tail;          // Last node in the list
     PhantomNode_t *active;        // Currently active node

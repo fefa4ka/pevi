@@ -18,7 +18,7 @@ enum pevi_mode {
 };
 
 // Forward declaration of PhantomList_t
-typedef struct PhantomList PhantomList_t;
+typedef struct PhantomList_s PhantomList_t;
 
 typedef struct {
   enum pevi_mode mode;
