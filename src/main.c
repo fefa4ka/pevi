@@ -114,7 +114,7 @@ void render(Camera_t *camera, render_body_fn Render3DBody,
 
 void resource_load() {
   // Try to load font, fallback to default if not found
-  font_default = font_load("lego/font/font.ttf", "lego/font/sdf.fs");
+  font_default = font_load("assets/fonts/font.ttf", "assets/fonts/sdf.fs");
   
   // If font loading failed, use a default font
   if (font_default.face.texture.id == 0) {
@@ -144,6 +144,9 @@ void resource_load() {
 
 int main(void) {
   window_open(&window);
+  
+  // Initialize core components
+  core_init();
   
   // Initialize input handler
   input_init(&input_handler);
