@@ -1,9 +1,9 @@
 #include "phantom.h"
 #include "helpers.h"
 #include "lr_file.h"
-#include "lr_file.h"
 #include "stdlib.h"
 #include "text.h"
+#include "error.h"
 
 bool phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
                            InputEvent_t *event) {

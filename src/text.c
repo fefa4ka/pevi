@@ -2,6 +2,7 @@
 #include "helpers.h"
 #include "input.h"
 #include "raylib.h"
+#include "error.h"
 #include <raymath.h>
 #include <rlgl.h>
 #include <stdio.h>

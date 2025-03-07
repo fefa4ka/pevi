@@ -1,5 +1,6 @@
 #include "input.h"
 #include "command.h"
+#include "error.h"
 #include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>

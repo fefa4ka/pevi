@@ -1,5 +1,12 @@
 #pragma once
 #include <lr.h>
+#include <stdbool.h>
+#include "error.h"
+
+// Define LR_SUCCESS if not already defined
+#ifndef LR_SUCCESS
+#define LR_SUCCESS 0
+#endif
 
 typedef enum { PEVI_BUF_TEXT, PEVI_BUF_FILE, PEVI_BUF_TERMINAL } Buffer_mode;
 

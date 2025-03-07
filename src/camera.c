@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "error.h"
 #include <raymath.h>
 #include <stdio.h>
 

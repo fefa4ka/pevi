@@ -1,4 +1,5 @@
 #include "core.h"
+#include "error.h"
 #include <stdio.h>
 
 bool core_init(void) {

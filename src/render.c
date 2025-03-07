@@ -1,5 +1,6 @@
 #include "render.h"
 #include "text.h"
+#include "error.h"
 
 
 bool render_frame(Pevi_t *pevi, Camera3D camera, render_body_fn Render3DBody,

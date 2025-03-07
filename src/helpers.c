@@ -1,4 +1,5 @@
 #include "helpers.h"
+#include "error.h"
 
 bool object_is_hovered(Camera_t *camera, BoundingBox object, Plane *plane) {
   Vector3 size = Vector3Subtract(object.max, object.min);

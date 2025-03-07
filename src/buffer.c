@@ -1,8 +1,10 @@
 #include "buffer.h"
 #include "config.h"
+#include "error.h"
 #include <lr_file.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 struct Buffer *buffer_init(size_t size) {
   struct Buffer *buffer = malloc(sizeof(struct Buffer));

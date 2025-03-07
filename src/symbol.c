@@ -1,5 +1,6 @@
 #include "symbol.h"
 #include "raylib.h"
+#include "error.h"
 #include <raymath.h>
 #include <rlgl.h>
 #include <stdio.h>
