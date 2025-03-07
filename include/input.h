@@ -76,7 +76,7 @@ typedef struct {
 
 // Main input processing functions
 void input_init(InputHandler_t *handler);
-void input_process(Pevi_t *pevi, Camera_t *camera, InputHandler_t *handler);
+bool input_process(Pevi_t *pevi, Camera_t *camera, InputHandler_t *handler);
 
 // Mode-specific input handlers
 void input_handle_free_mode(Pevi_t *pevi, InputEvent_t *event);

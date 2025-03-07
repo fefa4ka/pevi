@@ -79,8 +79,13 @@ static void text_event_handle(bool symbol_is_hovered, bool text_is_hovered,
   }
 }
 
-void text_draw(FontSettings_t *settings, char *content, Plane *plane,
+bool text_draw(FontSettings_t *settings, char *content, Plane *plane,
                Camera_t *camera, InputEvent_t *event) {
+  if (!settings || !content || !plane || !camera || !event) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null parameter in text_draw");
+    return false;
+  }
+
   Font font = settings->font.face;
   float scale = settings->font_size / (float)font.baseSize;
   Vector4 size = text_measure(font, content, settings->font_size,
@@ -100,6 +105,8 @@ void text_draw(FontSettings_t *settings, char *content, Plane *plane,
 
   // Handle input events for text interaction.
   text_event_handle(symbol_is_hovered, text_is_hovered, event);
+  
+  return true;
 }
 
 // Reads the next codepoint from the text and advances the pointer.
@@ -186,8 +193,13 @@ Vector4 text_measure(Font font, const char *text, float font_size,
   return result;
 }
 
-void text_draw_on_plane(FontSettings_t *settings, char *content, Plane *plane,
+bool text_draw_on_plane(FontSettings_t *settings, char *content, Plane *plane,
                         Camera_t *camera, InputEvent_t *event) {
+  if (!settings || !content || !plane || !camera || !event) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null parameter in text_draw_on_plane");
+    return false;
+  }
+
   Vector3 pos = plane->pos;
   Vector3 angles = plane->angles;
 
@@ -195,12 +207,12 @@ void text_draw_on_plane(FontSettings_t *settings, char *content, Plane *plane,
   rlTranslatef(pos.x, pos.y, pos.z);
 
   rlRotatef(RAD2DEG * angles.z, 0, 0, 1); // Roll (around Z-axis)
-  rlRotatef(RAD2DEG * angles.y, 0, 1,
-            0); // Rotate around Y-axis (yaw)
-  rlRotatef(RAD2DEG * angles.x, 1, 0,
-            0); // Rotate around X-axis (pitch)
+  rlRotatef(RAD2DEG * angles.y, 0, 1, 0); // Rotate around Y-axis (yaw)
+  rlRotatef(RAD2DEG * angles.x, 1, 0, 0); // Rotate around X-axis (pitch)
 
-  text_draw(settings, content, plane, camera, event);
+  bool result = text_draw(settings, content, plane, camera, event);
 
   rlPopMatrix();
+  
+  return result;
 }

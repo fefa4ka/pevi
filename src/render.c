@@ -2,8 +2,12 @@
 #include "text.h"
 
 
-void render_frame(Pevi_t *pevi, Camera3D camera, render_body_fn Render3DBody,
+bool render_frame(Pevi_t *pevi, Camera3D camera, render_body_fn Render3DBody,
                   render_body_fn Render2DBody) {
+  if (!pevi || !Render3DBody || !Render2DBody) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null parameter in render_frame");
+    return false;
+  }
 
   BeginDrawing();
 
@@ -11,13 +15,17 @@ void render_frame(Pevi_t *pevi, Camera3D camera, render_body_fn Render3DBody,
   ClearBackground(BLANK);
   rlEnableDepthTest();
 
+  // Call the 3D rendering function
   Render3DBody(pevi);
 
   EndMode3D();
 
+  // Call the 2D rendering function
   Render2DBody(pevi);
 
   EndDrawing();
+  
+  return true;
 }
 
 void render_status_bar(Pevi_t *pevi) {

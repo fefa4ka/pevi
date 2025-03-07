@@ -30,23 +30,27 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
           // Load SDF required shader (we use default vertex shader)
           if (FileExists(shader_filename)) {
             shader = LoadShader(0, shader_filename);
-            SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+            if (shader.id == 0) {
+              ERROR_SET(ERROR_SHADER_LOAD, ERROR_WARNING, "Failed to load shader");
+            } else {
+              SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+            }
           } else {
-            printf("Warning: Shader file not found: %s\n", shader_filename);
+            ERROR_SET(ERROR_FILE_NOT_FOUND, ERROR_WARNING, "Shader file not found");
           }
         } else {
-          printf("Warning: Failed to generate font atlas\n");
+          ERROR_SET(ERROR_FONT_LOAD, ERROR_WARNING, "Failed to generate font atlas");
         }
       } else {
-        printf("Warning: Failed to load font data\n");
+        ERROR_SET(ERROR_FONT_LOAD, ERROR_WARNING, "Failed to load font data");
       }
       
       UnloadFileData(fileData); // Free memory from loaded file
     } else {
-      printf("Warning: Failed to load font file data: %s\n", ttf_filename);
+      ERROR_SET(ERROR_FILE_ACCESS, ERROR_WARNING, "Failed to load font file data");
     }
   } else {
-    printf("Warning: Font file not found: %s\n", ttf_filename);
+    ERROR_SET(ERROR_FILE_NOT_FOUND, ERROR_WARNING, "Font file not found");
   }
   
   return (Font_t){font, shader};

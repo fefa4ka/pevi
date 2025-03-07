@@ -36,7 +36,7 @@ typedef struct {
     float width;
 } phantom_line_measure_t;
 
-void phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event);
+bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event);
 static Vector4 phantom_measure(const Phantom_t *phantom);
-void phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
+bool phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
                            InputEvent_t *event);

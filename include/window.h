@@ -13,5 +13,5 @@ typedef struct {
   Shader shader;
 } Window_t;
 
-void window_open(Window_t *state);
+bool window_open(Window_t *state);
 void window_close(Window_t *state);

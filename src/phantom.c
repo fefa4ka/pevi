@@ -5,8 +5,13 @@
 #include "stdlib.h"
 #include "text.h"
 
-void phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
+bool phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
                            InputEvent_t *event) {
+  if (!phantom || !camera || !event) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null parameter in phantom_draw_on_plane");
+    return false;
+  }
+
   Vector3 pos = phantom->plane.pos;
   Vector3 angles = phantom->plane.angles;
 
@@ -17,9 +22,11 @@ void phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
   rlRotatef(RAD2DEG * angles.y, 0, 1, 0); // Yaw (around Y-axis)
   rlRotatef(RAD2DEG * angles.x, 1, 0, 0); // Pitch (around X-axis)
 
-  phantom_draw(phantom, camera, event);
+  bool result = phantom_draw(phantom, camera, event);
 
   rlPopMatrix();
+  
+  return result;
 }
 
 // Draws the phantom background if hovered and returns whether it is hovered.
@@ -147,7 +154,17 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event) {
 // Main Phantom Draw Function
 // ---------------------------------------------------------------------------
 
-void phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
+bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
+  if (!phantom || !camera || !event) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null parameter in phantom_draw");
+    return false;
+  }
+  
+  if (!phantom->buffer) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Phantom has no buffer");
+    return false;
+  }
+
   // Extract the phantom's font settings.
   FontSettings_t settings = phantom->font;
   Font font = settings.font.face;
@@ -178,6 +195,8 @@ void phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
   if (phantom->is_hovered) {
     phantom_event_handle(phantom, event);
   }
+  
+  return true;
 }
 
 // ---------------------------------------------------------------------------

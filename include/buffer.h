@@ -14,4 +14,4 @@ typedef struct Buffer {
 } Buffer_t;
 
 Buffer_t *buffer_open(void *filename);
-void buffer_save(Buffer_t *bufferm, char *filename);
+bool buffer_save(Buffer_t *buffer, char *filename);

@@ -30,23 +30,40 @@ static void command_buffer_backspace(CommandBuffer_t *cb) {
 
 // Executes the command in the buffer if it matches a known command.
 static void command_buffer_execute(CommandBuffer_t *cb) {
+  if (!cb) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null command buffer parameter");
+    return;
+  }
+
   bool command_found = false;
   for (int i = 0; commands[i].name != NULL; i++) {
     if (strcmp(commands[i].name, cb->buffer) == 0) {
       // Execute the command function, passing the argument if available.
-      commands[i].command_function(commands[i].arg);
-      command_found = true;
-      break;
+      if (commands[i].command_function) {
+        commands[i].command_function(commands[i].arg);
+        command_found = true;
+        break;
+      } else {
+        ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Command function is NULL");
+      }
     }
   }
+  
   if (!command_found) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_WARNING, "Unknown command");
     printf("Unknown command: %s\n", cb->buffer);
   }
+  
   // Clear the buffer for the next command.
   command_buffer_init(cb);
 }
 
 bool command_buffer_update(CommandBuffer_t *cb) {
+  if (!cb) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null command buffer parameter");
+    return false;
+  }
+
   // When ENTER is pressed, execute the command.
   if (IsKeyPressed(KEY_ENTER)) {
     command_buffer_execute(cb);

@@ -22,7 +22,12 @@ void input_init(InputHandler_t *handler) {
 }
 
 // Main input processing function
-void input_process(Pevi_t *pevi, Camera_t *camera, InputHandler_t *handler) {
+bool input_process(Pevi_t *pevi, Camera_t *camera, InputHandler_t *handler) {
+  if (!pevi || !camera || !handler) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null parameter in input_process");
+    return false;
+  }
+
   // Update camera based on input
   camera_handle(camera);
   
@@ -46,12 +51,21 @@ void input_process(Pevi_t *pevi, Camera_t *camera, InputHandler_t *handler) {
   
   // Check for mode switching first
   if (input_check_mode_switch(pevi, &handler->current_event, camera)) {
-    return; // Mode switch occurred, don't process further
+    return true; // Mode switch occurred, don't process further
   }
   
   // Call the appropriate mode handler
   if (handler->mode_handlers[pevi->mode] != NULL) {
     handler->mode_handlers[pevi->mode](pevi, &handler->current_event);
+    return true;
+  } else if (pevi->mode >= 0 && pevi->mode < 5) {
+    // Valid mode but no handler
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_WARNING, "No handler for current mode");
+    return false;
+  } else {
+    // Invalid mode
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Invalid mode");
+    return false;
   }
 }
 

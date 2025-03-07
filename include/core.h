@@ -24,4 +24,4 @@ typedef struct {
   CommandBuffer_t command_buffer;
 } Pevi_t;
            
-void core_init();
+bool core_init(void);
