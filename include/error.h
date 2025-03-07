@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 // Error severity levels
-typedef enum ErrorLevel {
+typedef enum {
     ERROR_INFO,     // Informational message, not an error
     ERROR_WARNING,  // Warning, operation can continue
     ERROR_ERROR,    // Error, operation failed but program can continue
@@ -11,7 +11,7 @@ typedef enum ErrorLevel {
 } ErrorLevel_t;
 
 // Error codes
-typedef enum ErrorCode {
+typedef enum {
     ERROR_NONE,                 // No error
     ERROR_FILE_NOT_FOUND,       // File not found
     ERROR_FILE_ACCESS,          // File access error
