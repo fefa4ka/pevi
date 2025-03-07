@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "logger.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -12,6 +13,7 @@ static int allocation_count = 0;
 void memory_init(void) {
     allocation_count = 0;
     memset(allocations, 0, sizeof(allocations));
+    LOG_DEBUG("Memory tracking initialized with capacity for %d allocations", MAX_ALLOCATIONS);
 }
 
 // Find allocation entry for a pointer
@@ -29,7 +31,7 @@ static void track_allocation(void *ptr, size_t size, const char *file, int line,
     if (!ptr) return;
     
     if (allocation_count >= MAX_ALLOCATIONS) {
-        fprintf(stderr, "WARNING: Memory tracking array full, cannot track more allocations\n");
+        LOG_WARNING("Memory tracking array full, cannot track more allocations");
         return;
     }
     
@@ -40,6 +42,9 @@ static void track_allocation(void *ptr, size_t size, const char *file, int line,
     allocations[allocation_count].function = function;
     allocations[allocation_count].freed = false;
     
+    LOG_TRACE("Allocated %zu bytes at %p in %s:%d (%s)", 
+              size, ptr, file, line, function);
+    
     allocation_count++;
 }
 
@@ -49,9 +54,11 @@ static void mark_freed(void *ptr, const char *file, int line, const char *functi
     
     if (index >= 0) {
         allocations[index].freed = true;
+        LOG_TRACE("Freed %zu bytes at %p in %s:%d (%s)", 
+                  allocations[index].size, ptr, file, line, function);
     } else if (ptr != NULL) {
-        fprintf(stderr, "WARNING: Attempt to free untracked pointer %p at %s:%d (%s)\n", 
-                ptr, file, line, function);
+        LOG_WARNING("Attempt to free untracked pointer %p at %s:%d (%s)", 
+                    ptr, file, line, function);
     }
 }
 
@@ -60,6 +67,8 @@ void *memory_malloc(size_t size, const char *file, int line, const char *functio
     void *ptr = malloc(size);
     
     if (!ptr && size > 0) {
+        LOG_ERROR("Failed to allocate %zu bytes in %s:%d (%s)", 
+                  size, file, line, function);
         ERROR_SET(ERROR_MEMORY_ALLOCATION, ERROR_ERROR, "Failed to allocate memory");
         return NULL;
     }
@@ -73,6 +82,8 @@ void *memory_calloc(size_t count, size_t size, const char *file, int line, const
     void *ptr = calloc(count, size);
     
     if (!ptr && count > 0 && size > 0) {
+        LOG_ERROR("Failed to allocate %zu bytes (%zu x %zu) in %s:%d (%s)", 
+                  count * size, count, size, file, line, function);
         ERROR_SET(ERROR_MEMORY_ALLOCATION, ERROR_ERROR, "Failed to allocate memory");
         return NULL;
     }
@@ -88,6 +99,8 @@ void *memory_realloc(void *ptr, size_t size, const char *file, int line, const c
     void *new_ptr = realloc(ptr, size);
     
     if (!new_ptr && size > 0) {
+        LOG_ERROR("Failed to reallocate %zu bytes at %p in %s:%d (%s)", 
+                  size, ptr, file, line, function);
         ERROR_SET(ERROR_MEMORY_ALLOCATION, ERROR_ERROR, "Failed to reallocate memory");
         return NULL;
     }
@@ -95,6 +108,11 @@ void *memory_realloc(void *ptr, size_t size, const char *file, int line, const c
     if (index >= 0) {
         // Mark old allocation as freed
         allocations[index].freed = true;
+        LOG_TRACE("Reallocated %zu bytes at %p to %zu bytes at %p in %s:%d (%s)", 
+                  allocations[index].size, ptr, size, new_ptr, file, line, function);
+    } else {
+        LOG_TRACE("Reallocated untracked pointer %p to %zu bytes at %p in %s:%d (%s)", 
+                  ptr, size, new_ptr, file, line, function);
     }
     
     track_allocation(new_ptr, size, file, line, function);
@@ -128,14 +146,14 @@ void memory_print_leaks(void) {
     int leak_count = 0;
     size_t total_leaked = 0;
     
-    printf("\n=== Memory Leak Report ===\n");
+    LOG_INFO("=== Memory Leak Report ===");
     
     for (int i = 0; i < allocation_count; i++) {
         if (!allocations[i].freed) {
-            printf("LEAK: %zu bytes at %p allocated in %s:%d (%s)\n",
-                   allocations[i].size, allocations[i].ptr,
-                   allocations[i].file, allocations[i].line,
-                   allocations[i].function);
+            LOG_WARNING("LEAK: %zu bytes at %p allocated in %s:%d (%s)",
+                        allocations[i].size, allocations[i].ptr,
+                        allocations[i].file, allocations[i].line,
+                        allocations[i].function);
             
             leak_count++;
             total_leaked += allocations[i].size;
@@ -143,25 +161,26 @@ void memory_print_leaks(void) {
     }
     
     if (leak_count == 0) {
-        printf("No memory leaks detected.\n");
+        LOG_INFO("No memory leaks detected.");
     } else {
-        printf("Total: %d leaks, %zu bytes\n", leak_count, total_leaked);
+        LOG_WARNING("Total: %d leaks, %zu bytes", leak_count, total_leaked);
     }
     
-    printf("=========================\n");
+    LOG_INFO("=========================");
 }
 
 // Clean up all remaining allocations
 void memory_cleanup(void) {
     for (int i = 0; i < allocation_count; i++) {
         if (!allocations[i].freed && allocations[i].ptr) {
-            fprintf(stderr, "WARNING: Freeing leaked memory at %p (%zu bytes) from %s:%d\n",
-                    allocations[i].ptr, allocations[i].size,
-                    allocations[i].file, allocations[i].line);
+            LOG_WARNING("Freeing leaked memory at %p (%zu bytes) from %s:%d",
+                        allocations[i].ptr, allocations[i].size,
+                        allocations[i].file, allocations[i].line);
             free(allocations[i].ptr);
             allocations[i].freed = true;
         }
     }
     
+    LOG_DEBUG("Memory cleanup complete, freed %d allocations", allocation_count);
     allocation_count = 0;
 }

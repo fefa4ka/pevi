@@ -1,6 +1,6 @@
 #include "error.h"
+#include "logger.h"
 #include <stdlib.h>
-#include <time.h>
 
 // Global error state
 ErrorContext_t g_last_error = {0};
@@ -15,29 +15,25 @@ void error_init(void) {
 void error_log(const ErrorContext_t *error) {
     if (!error) return;
     
-    // Get current time
-    time_t now = time(NULL);
-    char time_str[26] = {0};
+    // Map error level to log level
+    LogLevel log_level;
+    switch (error->level) {
+        case ERROR_INFO:    log_level = LOG_INFO;    break;
+        case ERROR_WARNING: log_level = LOG_WARNING; break;
+        case ERROR_ERROR:   log_level = LOG_ERROR;   break;
+        case ERROR_FATAL:   log_level = LOG_FATAL;   break;
+        default:            log_level = LOG_ERROR;   break;
+    }
     
-    // Format time string
-    struct tm *tm_info = localtime(&now);
-    strftime(time_str, 26, "%Y-%m-%d %H:%M:%S", tm_info);
-    
-    // Print to stderr
-    fprintf(stderr, "[%s] %s: %s in %s:%d (%s)\n",
-            time_str,
-            error_level_string(error->level),
-            error->message ? error->message : "Unknown error",
-            error->file ? error->file : "unknown",
-            error->line,
-            error->function ? error->function : "unknown");
-    
-    // TODO: Optionally log to file if needed
+    // Log the error using our logger
+    logger_log(log_level, error->file, error->line, error->function,
+               "%s: %s", error_code_string(error->code), 
+               error->message ? error->message : "Unknown error");
 }
 
 // Handle fatal errors
 void error_handle_fatal(const ErrorContext_t *error) {
-    fprintf(stderr, "FATAL ERROR: Program will exit.\n");
+    LOG_FATAL("FATAL ERROR: Program will exit.");
     // Perform any cleanup needed before exit
     exit(EXIT_FAILURE);
 }

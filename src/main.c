@@ -6,6 +6,7 @@
 #include "error.h"
 #include "font.h"
 #include "input.h"
+#include "logger.h"
 #include "lr.h"
 #include "lr_file.h"
 #include "memory.h"
@@ -227,19 +228,30 @@ bool resource_load() {
 }
 
 int main(void) {
+  // Initialize logger
+  logger_init();
+  logger_set_console_level(LOG_DEBUG);
+  logger_set_log_to_file(true, "pevi.log");
+  
+  LOG_INFO("Starting Pevi editor");
+  
   // Initialize memory tracking
   memory_init();
+  LOG_DEBUG("Memory tracking initialized");
   
   // Initialize error handling
   error_init();
+  LOG_DEBUG("Error handling initialized");
   
   // Open window
+  LOG_INFO("Opening window");
   if (!window_open(&window)) {
     ERROR_SET(ERROR_UNKNOWN, ERROR_FATAL, "Failed to open window");
     return EXIT_FAILURE;
   }
 
   // Initialize core components
+  LOG_INFO("Initializing core components");
   if (!core_init()) {
     ERROR_SET(ERROR_UNKNOWN, ERROR_FATAL, "Failed to initialize core components");
     window_close(&window);
@@ -247,31 +259,43 @@ int main(void) {
   }
 
   // Initialize input handler
+  LOG_INFO("Initializing input handler");
   input_init(&input_handler);
 
   // Load resources
+  LOG_INFO("Loading resources");
   if (!resource_load()) {
     ERROR_SET(ERROR_UNKNOWN, ERROR_ERROR, "Failed to load resources");
+    LOG_WARNING("Using default resources due to loading failure");
     // Continue with default resources
   }
 
   // Main render loop
+  LOG_INFO("Entering main render loop");
   render(&camera, phantom_test, render_ui);
 
   // Cleanup resources
+  LOG_INFO("Cleaning up resources");
   if (phantom.buffer) {
     buffer_free(phantom.buffer);
     phantom.buffer = NULL;
   }
   
   // Cleanup window
+  LOG_INFO("Closing window");
   window_close(&window);
   
   // Check for memory leaks
+  LOG_INFO("Checking for memory leaks");
   memory_print_leaks();
   
   // Final memory cleanup
+  LOG_INFO("Performing final memory cleanup");
   memory_cleanup();
+  
+  // Cleanup logger
+  LOG_INFO("Shutting down logger");
+  logger_cleanup();
   
   return EXIT_SUCCESS;
 }
