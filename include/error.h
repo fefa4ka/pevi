@@ -48,16 +48,16 @@ extern bool g_error_occurred;
     g_last_error.function = NULL; \
 } while(0)
 
-#define ERROR_SET(code, level, message) do { \
+#define ERROR_SET(code_value, level_value, message_value) do { \
     g_error_occurred = true; \
-    g_last_error.code = (code); \
-    g_last_error.level = (level); \
-    g_last_error.message = (message); \
+    g_last_error.code = (code_value); \
+    g_last_error.level = (level_value); \
+    g_last_error.message = (message_value); \
     g_last_error.file = __FILE__; \
     g_last_error.line = __LINE__; \
     g_last_error.function = __func__; \
     error_log(&g_last_error); \
-    if ((level) == ERROR_FATAL) { \
+    if ((level_value) == ERROR_FATAL) { \
         error_handle_fatal(&g_last_error); \
     } \
 } while(0)
