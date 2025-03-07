@@ -1,5 +1,6 @@
 #pragma once
 #include "window.h"
+#include "core.h"
 
 typedef struct {
   Camera3D camera;
@@ -14,4 +15,5 @@ typedef struct {
 } Camera_t;
 
 void camera_handle(Camera_t *settings);
-Plane camera_plane(Camera *camera);
+void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode);
+Plane camera_plane(Camera3D *camera);

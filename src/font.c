@@ -1,4 +1,5 @@
 #include "font.h"
+#include <stdio.h>
 
 Font_t font_load(char *ttf_filename, char *shader_filename) {
   Font font = {0};

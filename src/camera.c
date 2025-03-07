@@ -46,10 +46,38 @@ void camera_handle(Camera_t *settings) {
                               dy, // Rotation: pitch
                               0},
                     GetMouseWheelMove() * 2.0f); // Move to target (zoom)
+    
+    // Update ray for collision detection
     settings->ray = GetMouseRay(GetMousePosition(), *camera);
-
     settings->ray_center = GetMouseRay(
         (Vector2){GetScreenWidth() / 2.0, GetScreenHeight() / 2.0}, *camera);
+  }
+}
+
+// Set camera mode based on editor mode
+void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
+  switch (editor_mode) {
+    case PEVI_MODE_FREE:
+      camera->is_enabled = true;
+      camera->is_movable = true;
+      camera->is_mouse_enabled = true;
+      camera->camera.projection = CAMERA_PERSPECTIVE;
+      break;
+      
+    case PEVI_MODE_EDIT:
+      camera->is_enabled = false;
+      camera->is_movable = false;
+      camera->camera.projection = CAMERA_ORTHOGRAPHIC;
+      break;
+      
+    case PEVI_MODE_COMMAND:
+      camera->is_enabled = false;
+      camera->is_movable = false;
+      break;
+      
+    default:
+      // Keep current settings for other modes
+      break;
   }
 }
 
