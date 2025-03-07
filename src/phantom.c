@@ -144,16 +144,9 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event) {
       // Set this phantom as the active one in the phantom list
       extern Pevi_t pevi;
       if (pevi.phantoms && phantom->is_selected) {
-        // Find this phantom in the list and make it active
-        PhantomNode_t *current = pevi.phantoms->head;
-        while (current) {
-          if (current->phantom == phantom) {
-            phantom_list_set_active(pevi.phantoms, current);
-            LOG_DEBUG("Set phantom with ID %d as active", phantom->id);
-            break;
-          }
-          current = current->next;
-        }
+        // Use the phantom_list API to set this phantom as active by ID
+        LOG_DEBUG("Setting phantom with ID %d as active", phantom->id);
+        phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
       }
       
       LOG_DEBUG("CLICK phantom %d", phantom->is_selected);
