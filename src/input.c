@@ -119,10 +119,12 @@ void input_handle_edit_mode(Pevi_t *pevi, InputEvent_t *event) {
   }
   
   // Process the edit input for the active phantom
-  // In a real implementation, this would use the active phantom from pevi
-  // For now, we're using the global phantom from main.c
-  extern Phantom_t phantom;
-  handle_edit_input(&phantom, event);
+  Phantom_t *active_phantom = phantom_list_get_active(pevi->phantoms);
+  if (active_phantom) {
+    handle_edit_input(active_phantom, event);
+  } else {
+    LOG_WARNING("No active phantom to handle edit input");
+  }
 }
 
 // Handle input in command mode

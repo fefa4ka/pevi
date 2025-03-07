@@ -10,6 +10,7 @@
 #include "lr.h"
 #include "lr_file.h"
 #include "memory.h"
+#include "phantom_list.h"
 #include "raylib.h"
 #include "render.h"
 #include "text.h"
@@ -33,21 +34,56 @@ InputHandler_t input_handler;
 Font_t font_default;
 
 Plane plane;
-Phantom_t phantom = {
-    .font = {.font_size = 16, .spacing = 0.6, .line_spacing = 0.6},
-    .line_from = 1,
-    .line_to = 3};
 
 void quit(void *arg) { pevi.is_closed = true; }
+
+void next_phantom(void *arg) {
+  if (pevi.phantoms) {
+    phantom_list_next(pevi.phantoms);
+  }
+}
+
+void prev_phantom(void *arg) {
+  if (pevi.phantoms) {
+    phantom_list_prev(pevi.phantoms);
+  }
+}
+
+void new_phantom(void *arg) {
+  if (pevi.phantoms) {
+    PhantomNode_t *node = phantom_list_create_phantom(pevi.phantoms, "test.txt");
+    if (node && node->phantom) {
+      node->phantom->font.font = font_default;
+      node->phantom->plane = plane;
+      
+      // Position the new phantom to the right of the active one
+      Phantom_t *active = phantom_list_get_active(pevi.phantoms);
+      if (active) {
+        node->phantom->plane.pos.x = active->plane.pos.x + 5.0f;
+      }
+      
+      // Make the new phantom active
+      phantom_list_set_active(pevi.phantoms, node);
+    }
+  }
+}
+
 Command_t commands[] = {
-    {"q", quit, &pevi.command_buffer}, {0} // End marker
+    {"q", quit, &pevi.command_buffer},
+    {"n", next_phantom, NULL},
+    {"p", prev_phantom, NULL},
+    {"new", new_phantom, NULL},
+    {0} // End marker
 };
 
 void phantom_test(Pevi_t *pevi) {
   InputEvent_t event = {0};
-  if (!phantom_draw_on_plane(&phantom, &camera, &event)) {
-    ERROR_SET(ERROR_UNKNOWN, ERROR_WARNING, "Failed to draw phantom");
+  
+  // Draw all phantoms using the phantom list
+  if (pevi->phantoms) {
+    phantom_list_draw_all(pevi->phantoms, &camera, &event);
   }
+  
   DrawGrid(100, 1.0f);
 }
 
@@ -96,8 +132,13 @@ bool resource_load() {
   }
 
   plane = camera_plane(&camera.camera);
-  phantom.font.font = font_default;
-  phantom.plane = plane;
+
+  // Create a phantom list
+  pevi.phantoms = phantom_list_create();
+  if (!pevi.phantoms) {
+    ERROR_SET(ERROR_MEMORY_ALLOCATION, ERROR_ERROR, "Failed to create phantom list");
+    return false;
+  }
 
   // Create a test file if it doesn't exist
   FILE *test_file = fopen("test.txt", "r");
@@ -118,11 +159,20 @@ bool resource_load() {
     fclose(test_file);
   }
 
-  // Open the buffer
-  phantom.buffer = buffer_open("test.txt");
-  if (!phantom.buffer) {
-    ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_ERROR, "Failed to open buffer");
+  // Create a phantom for the test file
+  PhantomNode_t *node = phantom_list_create_phantom(pevi.phantoms, "test.txt");
+  if (!node) {
+    ERROR_SET(ERROR_UNKNOWN, ERROR_ERROR, "Failed to create phantom for test file");
     success = false;
+    return success;
+  }
+  
+  // Get the created phantom and set its properties
+  Phantom_t *phantom = node->phantom;
+  if (phantom) {
+    phantom->font.font = font_default;
+    phantom->plane = plane;
+    LOG_INFO("Created phantom with ID %d", phantom->id);
   }
 
   return success;
@@ -177,9 +227,9 @@ int main(void) {
 
   // Cleanup resources
   LOG_INFO("Cleaning up resources");
-  if (phantom.buffer) {
-    buffer_free(phantom.buffer);
-    phantom.buffer = NULL;
+  if (pevi.phantoms) {
+    phantom_list_free(pevi.phantoms);
+    pevi.phantoms = NULL;
   }
   
   // Cleanup window
