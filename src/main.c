@@ -142,7 +142,7 @@ void handle_edit_input(InputEvent_t *event) {
         phantom.cursor.is_eof = false;
         phantom.line_to += 1;
 
-        printf("Line split. Cursor: %lu.%lu\n", phantom.cursor.line_no, phantom.cursor.pos);
+        LOG_DEBUG("Line split. Cursor: %lu.%lu", phantom.cursor.line_no, phantom.cursor.pos);
       }
     }
   }
