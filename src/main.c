@@ -113,7 +113,7 @@ void handle_edit_input(InputEvent_t *event) {
           phantom.cursor.pos--;
           phantom.cursor.needle = NULL;
         }
-        printf("Cursor: %lu.%lu\n", phantom.cursor.line_no, phantom.cursor.pos);
+        LOG_DEBUG("Cursor: %lu.%lu", phantom.cursor.line_no, phantom.cursor.pos);
       } else if (event->key_code == KEY_ENTER) {
         // Split the current line at cursor position
         lr_result_t result = lr_file_split(&phantom.buffer->lr, phantom.cursor.line_no, phantom.cursor.pos);

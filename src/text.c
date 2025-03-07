@@ -69,13 +69,13 @@ static void text_event_handle(bool symbol_is_hovered, bool text_is_hovered,
     event->source_type = INPUT_SOURCE_TEXT;
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_CLICK;
-      printf("CLICK text\n");
+      LOG_DEBUG("CLICK text");
     } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_DRAG;
-      printf("DRAG text\n");
+      LOG_DEBUG("DRAG text");
     } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_RELEASE;
-      printf("RELEASE text\n");
+      LOG_DEBUG("RELEASE text");
     }
   }
 }

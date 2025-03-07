@@ -137,13 +137,13 @@ void symbol_interaction_handle(char symbol, Vector3 pos, Vector3 glyph_size,
 
   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     event->mouse = INPUT_MOUSE_CLICK;
-    printf("CLICK %c\n", symbol);
+    LOG_DEBUG("CLICK %c", symbol);
   } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     event->mouse = INPUT_MOUSE_DRAG;
-    printf("DRAG %c\n", symbol);
+    LOG_DEBUG("DRAG %c", symbol);
   } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
     event->mouse = INPUT_MOUSE_RELEASE;
-    printf("RELEASE %c\n", symbol);
+    LOG_DEBUG("RELEASE %c", symbol);
   }
 }
 

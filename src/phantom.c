@@ -103,7 +103,7 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
                 } else {
                   phantom->cursor.is_eof = false;
                 }
-                printf("Cursor: %lu.%lu\n", line_no, line_pos);
+                LOG_DEBUG("Cursor: %lu.%lu", line_no, line_pos);
               }
             }
           }
@@ -140,13 +140,13 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_CLICK;
       phantom->is_selected = !phantom->is_selected;
-      printf("CLICK phantom %d\n", phantom->is_selected);
+      LOG_DEBUG("CLICK phantom %d", phantom->is_selected);
     } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_DRAG;
-      printf("DRAG phantom\n");
+      LOG_DEBUG("DRAG phantom");
     } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_RELEASE;
-      printf("RELEASE phantom\n");
+      LOG_DEBUG("RELEASE phantom");
     }
   }
 }

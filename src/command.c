@@ -52,7 +52,7 @@ static void command_buffer_execute(CommandBuffer_t *cb) {
   
   if (!command_found) {
     ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_WARNING, "Unknown command");
-    printf("Unknown command: %s\n", cb->buffer);
+    LOG_WARNING("Unknown command: %s", cb->buffer);
   }
   
   // Clear the buffer for the next command.

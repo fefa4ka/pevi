@@ -77,7 +77,7 @@ void input_handle_free_mode(Pevi_t *pevi, InputEvent_t *event) {
   
   // Check for special key presses
   if (IsKeyPressed(KEY_SPACE)) {
-    printf("Space key pressed in free mode!\n");
+    LOG_DEBUG("Space key pressed in free mode");
   }
 }
 
@@ -89,7 +89,7 @@ void input_handle_edit_mode(Pevi_t *pevi, InputEvent_t *event) {
     event->source_type = INPUT_SOURCE_KEYBOARD;
     event->key_type = INPUT_KEY_CHAR;
     event->key_code = key;
-    printf("Character pressed in edit mode: %c\n", key);
+    LOG_DEBUG("Character pressed in edit mode: %c", key);
   }
   
   // Check for special keys
@@ -97,19 +97,19 @@ void input_handle_edit_mode(Pevi_t *pevi, InputEvent_t *event) {
     event->source_type = INPUT_SOURCE_KEYBOARD;
     event->key_type = INPUT_KEY_SPECIAL;
     event->key_code = KEY_BACKSPACE;
-    printf("Backspace pressed in edit mode\n");
+    LOG_DEBUG("Backspace pressed in edit mode");
   }
   else if (IsKeyPressed(KEY_DELETE)) {
     event->source_type = INPUT_SOURCE_KEYBOARD;
     event->key_type = INPUT_KEY_SPECIAL;
     event->key_code = KEY_DELETE;
-    printf("Delete pressed in edit mode\n");
+    LOG_DEBUG("Delete pressed in edit mode");
   }
   else if (IsKeyPressed(KEY_ENTER)) {
     event->source_type = INPUT_SOURCE_KEYBOARD;
     event->key_type = INPUT_KEY_SPECIAL;
     event->key_code = KEY_ENTER;
-    printf("Enter pressed in edit mode\n");
+    LOG_DEBUG("Enter pressed in edit mode");
   }
 }
 
@@ -129,13 +129,13 @@ bool input_check_mode_switch(Pevi_t *pevi, InputEvent_t *event, Camera_t *camera
   if (pevi->mode == PEVI_MODE_FREE) {
     int key = GetCharPressed();
     if (key == 'e') {
-      printf("Switching to Edit mode\n");
+      LOG_INFO("Switching to Edit mode");
       pevi->mode = PEVI_MODE_EDIT;
       camera_set_mode(camera, PEVI_MODE_EDIT);
       return true;
     } 
     else if (key == ':') {
-      printf("Switching to Command mode\n");
+      LOG_INFO("Switching to Command mode");
       pevi->mode = PEVI_MODE_COMMAND;
       camera_set_mode(camera, PEVI_MODE_COMMAND);
       return true;
@@ -144,7 +144,7 @@ bool input_check_mode_switch(Pevi_t *pevi, InputEvent_t *event, Camera_t *camera
   else if (pevi->mode != PEVI_MODE_FREE) {
     // From any non-free mode, ESC returns to free mode
     if (IsKeyPressed(KEY_ESCAPE)) {
-      printf("Returning to Free mode\n");
+      LOG_INFO("Returning to Free mode");
       pevi->mode = PEVI_MODE_FREE;
       camera_set_mode(camera, PEVI_MODE_FREE);
       return true;
