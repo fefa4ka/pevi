@@ -1,6 +1,7 @@
 #include "text.h"
 #include "helpers.h"
 #include "input.h"
+#include "logger.h"
 #include "raylib.h"
 #include "error.h"
 #include <raymath.h>
