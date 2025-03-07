@@ -146,19 +146,30 @@ static Vector3 phantom_drag_position_calculate(Camera_t *camera, Vector3 current
   // Get the ray from camera to mouse position
   Ray ray = GetMouseRay(GetMousePosition(), camera->camera);
   
-  // Define a plane perpendicular to the camera view for dragging
-  // This creates a plane at the phantom's current position
+  // Create a plane perpendicular to the camera view direction
+  // This ensures we can drag in any direction relative to the camera view
   Vector3 plane_normal = Vector3Normalize(Vector3Subtract(camera->camera.position, camera->camera.target));
-  float plane_distance = Vector3DotProduct(current_pos, plane_normal);
   
-  // Calculate intersection of ray with the plane
+  // Calculate the distance from the camera to the phantom's current position
+  float distance = Vector3Distance(camera->camera.position, current_pos);
+  
+  // Calculate intersection of ray with a plane at the phantom's distance from camera
   float denominator = Vector3DotProduct(ray.direction, plane_normal);
   if (fabs(denominator) < 0.0001f) {
     // Ray is parallel to plane, no intersection
     return current_pos;
   }
   
-  float t = (plane_distance - Vector3DotProduct(ray.position, plane_normal)) / denominator;
+  // Calculate the plane constant d from the point-normal form of the plane equation
+  // Plane equation: ax + by + cz + d = 0, where (a,b,c) is the normal
+  // For a point p on the plane: d = -dot(normal, p)
+  float d = -Vector3DotProduct(plane_normal, current_pos);
+  
+  // Calculate t where ray intersects the plane
+  // p = ray.position + t * ray.direction is on the plane when
+  // dot(normal, p) + d = 0
+  float t = -(Vector3DotProduct(plane_normal, ray.position) + d) / denominator;
+  
   if (t < 0) {
     // Intersection is behind the camera
     return current_pos;
@@ -174,6 +185,10 @@ static Vector3 phantom_drag_position_calculate(Camera_t *camera, Vector3 current
     current_pos.y + (intersection.y - current_pos.y) * smoothing,
     current_pos.z + (intersection.z - current_pos.z) * smoothing
   };
+  
+  LOG_DEBUG("Drag: current=(%.2f,%.2f,%.2f), new=(%.2f,%.2f,%.2f)", 
+           current_pos.x, current_pos.y, current_pos.z,
+           new_pos.x, new_pos.y, new_pos.z);
   
   return new_pos;
 }
