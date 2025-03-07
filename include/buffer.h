@@ -22,3 +22,4 @@ typedef struct Buffer {
 
 Buffer_t *buffer_open(void *filename);
 bool buffer_save(Buffer_t *buffer, char *filename);
+void buffer_free(Buffer_t *buffer);

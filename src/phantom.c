@@ -281,3 +281,41 @@ static Vector4 phantom_measure(const Phantom_t *phantom) {
 
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Phantom Creation and Cleanup
+// ---------------------------------------------------------------------------
+
+Phantom_t *phantom_create(void) {
+  Phantom_t *phantom = MALLOC(sizeof(Phantom_t));
+  if (!phantom) {
+    ERROR_SET(ERROR_MEMORY_ALLOCATION, ERROR_ERROR, "Failed to allocate phantom");
+    return NULL;
+  }
+  
+  // Initialize phantom fields
+  phantom->id = 0;
+  phantom->buffer = NULL;
+  phantom->line_from = 1;
+  phantom->line_to = 1;
+  phantom->plane = (Plane){0};
+  phantom->font = (FontSettings_t){0};
+  phantom->cursor = (Cursor_t){0};
+  phantom->is_selected = false;
+  phantom->is_hovered = false;
+  
+  return phantom;
+}
+
+void phantom_free(Phantom_t *phantom) {
+  if (!phantom) return;
+  
+  // Free the buffer if it exists
+  if (phantom->buffer) {
+    buffer_free(phantom->buffer);
+    phantom->buffer = NULL;
+  }
+  
+  // Free the phantom structure itself
+  FREE(phantom);
+}

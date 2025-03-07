@@ -29,8 +29,16 @@ bool window_open(Window_t *window) {
 }
 
 void window_close(Window_t *window) {
-  UnloadFont(window->font);
-  UnloadShader(window->shader);
+  if (!window) return;
+  
+  // Unload font and shader if they exist
+  if (window->font.texture.id > 0) {
+    UnloadFont(window->font);
+  }
+  
+  if (window->shader.id > 0) {
+    UnloadShader(window->shader);
+  }
 
   CloseWindow();
 }

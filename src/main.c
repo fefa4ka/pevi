@@ -8,6 +8,7 @@
 #include "input.h"
 #include "lr.h"
 #include "lr_file.h"
+#include "memory.h"
 #include "raylib.h"
 #include "render.h"
 #include "text.h"
@@ -226,6 +227,9 @@ bool resource_load() {
 }
 
 int main(void) {
+  // Initialize memory tracking
+  memory_init();
+  
   // Initialize error handling
   error_init();
   
@@ -254,7 +258,20 @@ int main(void) {
   // Main render loop
   render(&camera, phantom_test, render_ui);
 
-  // Cleanup
+  // Cleanup resources
+  if (phantom.buffer) {
+    buffer_free(phantom.buffer);
+    phantom.buffer = NULL;
+  }
+  
+  // Cleanup window
   window_close(&window);
+  
+  // Check for memory leaks
+  memory_print_leaks();
+  
+  // Final memory cleanup
+  memory_cleanup();
+  
   return EXIT_SUCCESS;
 }

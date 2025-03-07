@@ -40,3 +40,5 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event);
 static Vector4 phantom_measure(const Phantom_t *phantom);
 bool phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
                            InputEvent_t *event);
+Phantom_t *phantom_create(void);
+void phantom_free(Phantom_t *phantom);
