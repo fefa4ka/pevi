@@ -106,6 +106,13 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
                   phantom->cursor.is_eof = false;
                 }
                 LOG_DEBUG("Cursor: %lu.%lu", line_no, line_pos);
+                
+                // Set this phantom as active when a symbol is clicked
+                extern Pevi_t pevi;
+                if (pevi.phantoms) {
+                  phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
+                  LOG_DEBUG("Set phantom with ID %d as active due to symbol click", phantom->id);
+                }
               }
             }
           }
@@ -205,6 +212,21 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
   // Handle input events for the phantom.
   if (phantom->is_hovered) {
     phantom_event_handle(phantom, event);
+  }
+  
+  // Check if this phantom contains the plane that was clicked on a symbol
+  if (event->source_type == INPUT_SOURCE_SYMBOL && 
+      event->mouse == INPUT_MOUSE_CLICK && 
+      event->source == &phantom->plane) {
+    // Clear the source to prevent multiple activations
+    event->source = NULL;
+    
+    // Set this phantom as active
+    extern Pevi_t pevi;
+    if (pevi.phantoms) {
+      phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
+      LOG_DEBUG("Set phantom with ID %d as active due to symbol click (from plane)", phantom->id);
+    }
   }
   
   return true;

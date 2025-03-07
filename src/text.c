@@ -54,6 +54,14 @@ static bool text_glyphs_draw(const char *content, Font *font, float font_size,
       if (object_is_hovered(camera, symbol_box, plane)) {
         symbol_is_hovered = true;
         symbol_interaction_handle(content[index], pos, glyph.size, event);
+        
+        // If a symbol is clicked, set the containing phantom as active
+        if (event->source_type == INPUT_SOURCE_SYMBOL && 
+            event->mouse == INPUT_MOUSE_CLICK) {
+          // The phantom will be set as active in the phantom_draw function
+          // by storing the event information
+          event->source = plane; // Store the plane to identify the phantom
+        }
       }
     }
 
