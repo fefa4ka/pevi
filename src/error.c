@@ -18,11 +18,11 @@ void error_log(const ErrorContext_t *error) {
     // Map error level to log level
     LogLevel log_level;
     switch (error->level) {
-        case ERROR_INFO:    log_level = LOG_INFO;    break;
-        case ERROR_WARNING: log_level = LOG_WARNING; break;
-        case ERROR_ERROR:   log_level = LOG_ERROR;   break;
-        case ERROR_FATAL:   log_level = LOG_FATAL;   break;
-        default:            log_level = LOG_ERROR;   break;
+        case ERROR_INFO:    log_level = PEVI_LOG_INFO;    break;
+        case ERROR_WARNING: log_level = PEVI_LOG_WARNING; break;
+        case ERROR_ERROR:   log_level = PEVI_LOG_ERROR;   break;
+        case ERROR_FATAL:   log_level = PEVI_LOG_FATAL;   break;
+        default:            log_level = PEVI_LOG_ERROR;   break;
     }
     
     // Log the error using our logger

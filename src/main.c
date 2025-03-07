@@ -230,7 +230,7 @@ bool resource_load() {
 int main(void) {
   // Initialize logger
   logger_init();
-  logger_set_console_level(LOG_DEBUG);
+  logger_set_console_level(PEVI_LOG_DEBUG);
   logger_set_log_to_file(true, "pevi.log");
   
   LOG_INFO("Starting Pevi editor");

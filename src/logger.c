@@ -14,8 +14,8 @@
 
 // Global logger configuration
 static LogConfig g_log_config = {
-    .console_level = LOG_INFO,
-    .file_level = LOG_TRACE,
+    .console_level = PEVI_LOG_INFO,
+    .file_level = PEVI_LOG_TRACE,
     .use_colors = true,
     .log_to_file = false,
     .log_file_path = "",
@@ -73,12 +73,12 @@ void logger_set_log_to_file(bool log_to_file, const char *file_path) {
 // Get color code for log level
 static const char *get_level_color(LogLevel level) {
     switch (level) {
-        case LOG_TRACE: return COLOR_GRAY;
-        case LOG_DEBUG: return COLOR_GREEN;
-        case LOG_INFO: return COLOR_BLUE;
-        case LOG_WARNING: return COLOR_YELLOW;
-        case LOG_ERROR: return COLOR_RED;
-        case LOG_FATAL: return COLOR_MAGENTA;
+        case PEVI_LOG_TRACE: return COLOR_GRAY;
+        case PEVI_LOG_DEBUG: return COLOR_GREEN;
+        case PEVI_LOG_INFO: return COLOR_BLUE;
+        case PEVI_LOG_WARNING: return COLOR_YELLOW;
+        case PEVI_LOG_ERROR: return COLOR_RED;
+        case PEVI_LOG_FATAL: return COLOR_MAGENTA;
         default: return COLOR_RESET;
     }
 }
@@ -86,12 +86,12 @@ static const char *get_level_color(LogLevel level) {
 // Get string representation of log level
 const char *logger_level_string(LogLevel level) {
     switch (level) {
-        case LOG_TRACE: return "TRACE";
-        case LOG_DEBUG: return "DEBUG";
-        case LOG_INFO: return "INFO";
-        case LOG_WARNING: return "WARNING";
-        case LOG_ERROR: return "ERROR";
-        case LOG_FATAL: return "FATAL";
+        case PEVI_LOG_TRACE: return "TRACE";
+        case PEVI_LOG_DEBUG: return "DEBUG";
+        case PEVI_LOG_INFO: return "INFO";
+        case PEVI_LOG_WARNING: return "WARNING";
+        case PEVI_LOG_ERROR: return "ERROR";
+        case PEVI_LOG_FATAL: return "FATAL";
         default: return "UNKNOWN";
     }
 }

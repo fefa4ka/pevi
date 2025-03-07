@@ -5,12 +5,12 @@
 
 // Log levels
 typedef enum {
-    LOG_TRACE,    // Detailed tracing information
-    LOG_DEBUG,    // Debugging information
-    LOG_INFO,     // General information
-    LOG_WARNING,  // Warning messages
-    LOG_ERROR,    // Error messages
-    LOG_FATAL     // Fatal errors
+    PEVI_LOG_TRACE,    // Detailed tracing information
+    PEVI_LOG_DEBUG,    // Debugging information
+    PEVI_LOG_INFO,     // General information
+    PEVI_LOG_WARNING,  // Warning messages
+    PEVI_LOG_ERROR,    // Error messages
+    PEVI_LOG_FATAL     // Fatal errors
 } LogLevel;
 
 // Log configuration
@@ -45,12 +45,12 @@ void logger_log(LogLevel level, const char *file, int line, const char *function
 void logger_cleanup(void);
 
 // Convenience macros for logging
-#define LOG_TRACE(...) logger_log(LOG_TRACE, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_DEBUG(...) logger_log(LOG_DEBUG, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_INFO(...) logger_log(LOG_INFO, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_WARNING(...) logger_log(LOG_WARNING, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_ERROR(...) logger_log(LOG_ERROR, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define LOG_FATAL(...) logger_log(LOG_FATAL, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_TRACE(...) logger_log(PEVI_LOG_TRACE, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_DEBUG(...) logger_log(PEVI_LOG_DEBUG, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_INFO(...) logger_log(PEVI_LOG_INFO, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_WARNING(...) logger_log(PEVI_LOG_WARNING, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_ERROR(...) logger_log(PEVI_LOG_ERROR, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define LOG_FATAL(...) logger_log(PEVI_LOG_FATAL, __FILE__, __LINE__, __func__, __VA_ARGS__)
 
 // Get string representation of log level
 const char *logger_level_string(LogLevel level);
