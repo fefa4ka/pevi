@@ -2,6 +2,8 @@
 #include "command.h"
 #include "error.h"
 #include "logger.h"
+#include "phantom.h"
+#include "lr_file.h"
 #include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,6 +84,9 @@ void input_handle_free_mode(Pevi_t *pevi, InputEvent_t *event) {
   }
 }
 
+// Forward declaration of handle_edit_input
+static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event);
+
 // Handle input in edit mode
 void input_handle_edit_mode(Pevi_t *pevi, InputEvent_t *event) {
   // Get character input
@@ -112,6 +117,12 @@ void input_handle_edit_mode(Pevi_t *pevi, InputEvent_t *event) {
     event->key_code = KEY_ENTER;
     LOG_DEBUG("Enter pressed in edit mode");
   }
+  
+  // Process the edit input for the active phantom
+  // In a real implementation, this would use the active phantom from pevi
+  // For now, we're using the global phantom from main.c
+  extern Phantom_t phantom;
+  handle_edit_input(&phantom, event);
 }
 
 // Handle input in command mode
@@ -163,4 +174,102 @@ bool input_is_key_pressed(int key) {
 // Helper function to get a character pressed
 int input_get_char_pressed(void) {
   return GetCharPressed();
+}
+
+// Handle edit mode input for a phantom
+static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
+  if (!event) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null event parameter");
+    return;
+  }
+  
+  if (!phantom || !phantom->buffer) {
+    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Invalid phantom or phantom has no buffer");
+    return;
+  }
+
+  if (event->source_type == INPUT_SOURCE_KEYBOARD) {
+    if (event->key_type == INPUT_KEY_CHAR) {
+      int key = event->key_code;
+      lr_result_t result;
+      
+      if (phantom->cursor.pos == 1) {
+        result = lr_insert(&phantom->buffer->lr, key, phantom->cursor.line_no, phantom->cursor.pos);
+        if (result != LR_SUCCESS) {
+          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to insert character at beginning of line");
+          return;
+        }
+        phantom->cursor.needle = phantom->cursor.needle->next;
+        phantom->cursor.pos++;
+      } else if (phantom->cursor.is_eof) {
+        result = lr_put(&phantom->buffer->lr, key, phantom->cursor.line_no);
+        if (result != LR_SUCCESS) {
+          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to append character at end of line");
+          return;
+        }
+        phantom->cursor.needle = lr_owner_tail(phantom->cursor.owner);
+        phantom->cursor.pos++;
+      } else {
+        result = lr_insert_next(&phantom->buffer->lr, key, phantom->cursor.needle);
+        if (result != LR_SUCCESS) {
+          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to insert character in middle of line");
+          return;
+        }
+        phantom->cursor.pos++;
+        phantom->cursor.needle = phantom->cursor.needle->next;
+      }
+    } else if (event->key_type == INPUT_KEY_SPECIAL) {
+      if (event->key_code == KEY_BACKSPACE) {
+        lr_result_t result;
+        
+        if (phantom->cursor.is_eof) {
+          result = lr_pop(&phantom->buffer->lr, &phantom->cursor.needle->data, phantom->cursor.line_no);
+          if (result != LR_SUCCESS) {
+            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to delete character at end of line");
+            return;
+          }
+          phantom->cursor.pos--;
+          phantom->cursor.needle = lr_owner_tail(phantom->cursor.owner);
+        } else {
+          result = lr_pull(&phantom->buffer->lr, &phantom->cursor.needle->data, phantom->cursor.line_no, phantom->cursor.pos);
+          if (result != LR_SUCCESS) {
+            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to delete character in middle of line");
+            return;
+          }
+          phantom->cursor.pos--;
+          phantom->cursor.needle = NULL;
+        }
+        LOG_DEBUG("Cursor: %lu.%lu", phantom->cursor.line_no, phantom->cursor.pos);
+      } else if (event->key_code == KEY_ENTER) {
+        // Split the current line at cursor position
+        lr_result_t result = lr_file_split(&phantom->buffer->lr, phantom->cursor.line_no, phantom->cursor.pos);
+        if (result != LR_SUCCESS) {
+          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to split line");
+          return;
+        }
+
+        // Move cursor to the beginning of the new line
+        phantom->cursor.line_no++;
+        phantom->cursor.pos = 1;
+
+        // Update cursor needle to point to the beginning of the new line
+        phantom->cursor.owner = lr_owner_find(&phantom->buffer->lr, lr_owner(phantom->cursor.line_no));
+        if (!phantom->cursor.owner) {
+          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to find new line owner");
+          return;
+        }
+        
+        phantom->cursor.needle = lr_owner_head(&phantom->buffer->lr, phantom->cursor.owner);
+        if (!phantom->cursor.needle) {
+          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to find new line head");
+          return;
+        }
+        
+        phantom->cursor.is_eof = false;
+        phantom->line_to += 1;
+
+        LOG_DEBUG("Line split. Cursor: %lu.%lu", phantom->cursor.line_no, phantom->cursor.pos);
+      }
+    }
+  }
 }

@@ -51,102 +51,6 @@ void phantom_test(Pevi_t *pevi) {
   DrawGrid(100, 1.0f);
 }
 
-void handle_edit_input(InputEvent_t *event) {
-  if (!event) {
-    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Null event parameter");
-    return;
-  }
-  
-  if (!phantom.buffer) {
-    ERROR_SET(ERROR_INVALID_PARAMETER, ERROR_ERROR, "Phantom has no buffer");
-    return;
-  }
-
-  if (event->source_type == INPUT_SOURCE_KEYBOARD) {
-    if (event->key_type == INPUT_KEY_CHAR) {
-      int key = event->key_code;
-      lr_result_t result;
-      
-      if (phantom.cursor.pos == 1) {
-        result = lr_insert(&phantom.buffer->lr, key, phantom.cursor.line_no, phantom.cursor.pos);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to insert character at beginning of line");
-          return;
-        }
-        phantom.cursor.needle = phantom.cursor.needle->next;
-        phantom.cursor.pos++;
-      } else if (phantom.cursor.is_eof) {
-        result = lr_put(&phantom.buffer->lr, key, phantom.cursor.line_no);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to append character at end of line");
-          return;
-        }
-        phantom.cursor.needle = lr_owner_tail(phantom.cursor.owner);
-        phantom.cursor.pos++;
-      } else {
-        result = lr_insert_next(&phantom.buffer->lr, key, phantom.cursor.needle);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to insert character in middle of line");
-          return;
-        }
-        phantom.cursor.pos++;
-        phantom.cursor.needle = phantom.cursor.needle->next;
-      }
-    } else if (event->key_type == INPUT_KEY_SPECIAL) {
-      if (event->key_code == KEY_BACKSPACE) {
-        lr_result_t result;
-        
-        if (phantom.cursor.is_eof) {
-          result = lr_pop(&phantom.buffer->lr, &phantom.cursor.needle->data, phantom.cursor.line_no);
-          if (result != LR_SUCCESS) {
-            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to delete character at end of line");
-            return;
-          }
-          phantom.cursor.pos--;
-          phantom.cursor.needle = lr_owner_tail(phantom.cursor.owner);
-        } else {
-          result = lr_pull(&phantom.buffer->lr, &phantom.cursor.needle->data, phantom.cursor.line_no, phantom.cursor.pos);
-          if (result != LR_SUCCESS) {
-            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to delete character in middle of line");
-            return;
-          }
-          phantom.cursor.pos--;
-          phantom.cursor.needle = NULL;
-        }
-        LOG_DEBUG("Cursor: %lu.%lu", phantom.cursor.line_no, phantom.cursor.pos);
-      } else if (event->key_code == KEY_ENTER) {
-        // Split the current line at cursor position
-        lr_result_t result = lr_file_split(&phantom.buffer->lr, phantom.cursor.line_no, phantom.cursor.pos);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to split line");
-          return;
-        }
-
-        // Move cursor to the beginning of the new line
-        phantom.cursor.line_no++;
-        phantom.cursor.pos = 1;
-
-        // Update cursor needle to point to the beginning of the new line
-        phantom.cursor.owner = lr_owner_find(&phantom.buffer->lr, lr_owner(phantom.cursor.line_no));
-        if (!phantom.cursor.owner) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to find new line owner");
-          return;
-        }
-        
-        phantom.cursor.needle = lr_owner_head(&phantom.buffer->lr, phantom.cursor.owner);
-        if (!phantom.cursor.needle) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING, "Failed to find new line head");
-          return;
-        }
-        
-        phantom.cursor.is_eof = false;
-        phantom.line_to += 1;
-
-        LOG_DEBUG("Line split. Cursor: %lu.%lu", phantom.cursor.line_no, phantom.cursor.pos);
-      }
-    }
-  }
-}
 
 void render(Camera_t *camera, render_body_fn Render3DBody,
             render_body_fn Render2DBody) {
@@ -159,10 +63,7 @@ void render(Camera_t *camera, render_body_fn Render3DBody,
     // Process input
     input_process(&pevi, camera, &input_handler);
 
-    // Handle edit mode input
-    if (pevi.mode == PEVI_MODE_EDIT) {
-      handle_edit_input(&input_handler.current_event);
-    }
+    // Edit mode input is handled in input_handle_edit_mode
 
     // Render the frame
     render_frame(&pevi, camera->camera, Render3DBody, Render2DBody);
