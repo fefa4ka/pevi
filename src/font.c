@@ -27,3 +27,19 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
 
   return (Font_t){font, shader};
 }
+
+// Returns the raw glyph advance for the given codepoint.
+float font_glyph_advance_get(const Font *font, int codepoint) {
+  int glyph_index = GetGlyphIndex(*font, codepoint);
+  if (font->glyphs[glyph_index].advanceX != 0)
+    return font->glyphs[glyph_index].advanceX;
+  else
+    return font->recs[glyph_index].width + font->glyphs[glyph_index].offsetX;
+}
+
+// Returns the scaled glyph advance for the given codepoint.
+float font_glyph_advance_scaled_get(const Font *font, int codepoint,
+                                           float scale, float font_base_size) {
+  return (font_glyph_advance_get(font, codepoint) / font_base_size) * scale;
+}
+              

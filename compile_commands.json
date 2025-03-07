@@ -180,51 +180,105 @@
   "output": "third_party/linked_ring/CMakeFiles/lr.dir/src/lr_file.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/lego/core",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/core.dir/core.c.o -c /Users/fefa4ka/Documents/my/pevi/lego/core/core.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/lego/core/core.c",
-  "output": "lego/core/CMakeFiles/core.dir/core.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/third_party/linked_ring",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/test_basic.dir/test/basic.c.o -c /Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/basic.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/basic.c",
+  "output": "third_party/linked_ring/CMakeFiles/test_basic.dir/test/basic.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/lego/window",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/lego/core/. -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/lego/font/. -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/window.dir/window.c.o -c /Users/fefa4ka/Documents/my/pevi/lego/window/window.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/lego/window/window.c",
-  "output": "lego/window/CMakeFiles/window.dir/window.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/third_party/linked_ring",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/test_edge.dir/test/edge.c.o -c /Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/edge.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/edge.c",
+  "output": "third_party/linked_ring/CMakeFiles/test_edge.dir/test/edge.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/lego/font",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/lego/core/. -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/font.dir/font.c.o -c /Users/fefa4ka/Documents/my/pevi/lego/font/font.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/lego/font/font.c",
-  "output": "lego/font/CMakeFiles/font.dir/font.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/third_party/linked_ring",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/test_multi_thread.dir/test/multi_thread.c.o -c /Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/multi_thread.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/multi_thread.c",
+  "output": "third_party/linked_ring/CMakeFiles/test_multi_thread.dir/test/multi_thread.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/lego/symbol",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/lego/font/. -I/Users/fefa4ka/Documents/my/pevi/lego/core/. -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/lego/camera/. -I/Users/fefa4ka/Documents/my/pevi/lego/window/. -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/symbol.dir/symbol.c.o -c /Users/fefa4ka/Documents/my/pevi/lego/symbol/symbol.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/lego/symbol/symbol.c",
-  "output": "lego/symbol/CMakeFiles/symbol.dir/symbol.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/third_party/linked_ring",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/test_files.dir/test/files.c.o -c /Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/files.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/test/files.c",
+  "output": "third_party/linked_ring/CMakeFiles/test_files.dir/test/files.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/lego/camera",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/lego/window/. -I/Users/fefa4ka/Documents/my/pevi/lego/core/. -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/lego/font/. -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/camera.dir/camera.c.o -c /Users/fefa4ka/Documents/my/pevi/lego/camera/camera.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/lego/camera/camera.c",
-  "output": "lego/camera/CMakeFiles/camera.dir/camera.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/buffer.c.o -c /Users/fefa4ka/Documents/my/pevi/src/buffer.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/buffer.c",
+  "output": "src/CMakeFiles/editor.dir/buffer.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/lego/render",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/lego/camera/. -I/Users/fefa4ka/Documents/my/pevi/lego/window/. -I/Users/fefa4ka/Documents/my/pevi/lego/core/. -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/lego/font/. -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/render.dir/render.c.o -c /Users/fefa4ka/Documents/my/pevi/lego/render/render.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/lego/render/render.c",
-  "output": "lego/render/CMakeFiles/render.dir/render.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/camera.c.o -c /Users/fefa4ka/Documents/my/pevi/src/camera.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/camera.c",
+  "output": "src/CMakeFiles/editor.dir/camera.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/app",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -I/Users/fefa4ka/Documents/my/pevi/lego/camera/. -I/Users/fefa4ka/Documents/my/pevi/lego/window/. -I/Users/fefa4ka/Documents/my/pevi/lego/core/. -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/lego/font/. -I/Users/fefa4ka/Documents/my/pevi/lego/render/. -I/Users/fefa4ka/Documents/my/pevi/lego/symbol/. -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/main.c.o -c /Users/fefa4ka/Documents/my/pevi/app/main.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/app/main.c",
-  "output": "app/CMakeFiles/editor.dir/main.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/command.c.o -c /Users/fefa4ka/Documents/my/pevi/src/command.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/command.c",
+  "output": "src/CMakeFiles/editor.dir/command.c.o"
 },
 {
-  "directory": "/Users/fefa4ka/Documents/my/pevi/build/app",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -I/Users/fefa4ka/Documents/my/pevi/lego/camera/. -I/Users/fefa4ka/Documents/my/pevi/lego/window/. -I/Users/fefa4ka/Documents/my/pevi/lego/core/. -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/lego/font/. -I/Users/fefa4ka/Documents/my/pevi/lego/render/. -I/Users/fefa4ka/Documents/my/pevi/lego/symbol/. -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/buffer.c.o -c /Users/fefa4ka/Documents/my/pevi/app/buffer.c",
-  "file": "/Users/fefa4ka/Documents/my/pevi/app/buffer.c",
-  "output": "app/CMakeFiles/editor.dir/buffer.c.o"
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/core.c.o -c /Users/fefa4ka/Documents/my/pevi/src/core.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/core.c",
+  "output": "src/CMakeFiles/editor.dir/core.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/font.c.o -c /Users/fefa4ka/Documents/my/pevi/src/font.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/font.c",
+  "output": "src/CMakeFiles/editor.dir/font.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/helpers.c.o -c /Users/fefa4ka/Documents/my/pevi/src/helpers.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/helpers.c",
+  "output": "src/CMakeFiles/editor.dir/helpers.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/input.c.o -c /Users/fefa4ka/Documents/my/pevi/src/input.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/input.c",
+  "output": "src/CMakeFiles/editor.dir/input.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/main.c.o -c /Users/fefa4ka/Documents/my/pevi/src/main.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/main.c",
+  "output": "src/CMakeFiles/editor.dir/main.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/phantom.c.o -c /Users/fefa4ka/Documents/my/pevi/src/phantom.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/phantom.c",
+  "output": "src/CMakeFiles/editor.dir/phantom.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/render.c.o -c /Users/fefa4ka/Documents/my/pevi/src/render.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/render.c",
+  "output": "src/CMakeFiles/editor.dir/render.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/symbol.c.o -c /Users/fefa4ka/Documents/my/pevi/src/symbol.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/symbol.c",
+  "output": "src/CMakeFiles/editor.dir/symbol.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/text.c.o -c /Users/fefa4ka/Documents/my/pevi/src/text.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/text.c",
+  "output": "src/CMakeFiles/editor.dir/text.c.o"
+},
+{
+  "directory": "/Users/fefa4ka/Documents/my/pevi/build/src",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -I/Users/fefa4ka/Documents/my/pevi/include -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src -I/Users/fefa4ka/Documents/my/pevi/build/_deps/raylib-src/src/external/glfw/include -I/Users/fefa4ka/Documents/my/pevi/third_party/linked_ring/include -g -std=gnu11 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -mmacosx-version-min=14.1 -o CMakeFiles/editor.dir/window.c.o -c /Users/fefa4ka/Documents/my/pevi/src/window.c",
+  "file": "/Users/fefa4ka/Documents/my/pevi/src/window.c",
+  "output": "src/CMakeFiles/editor.dir/window.c.o"
 }
 ]

@@ -11,9 +11,7 @@ typedef struct Buffer {
   size_t size;
   struct linked_ring lr;
   struct lr_cell *cells;
-
-  struct Buffer *prev;
-  struct Buffer *next;
 } Buffer_t;
 
-Buffer_t *file_open(void *filename);
+Buffer_t *buffer_open(void *filename);
+void buffer_save(Buffer_t *bufferm, char *filename);

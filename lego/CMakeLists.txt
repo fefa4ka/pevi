@@ -1,6 +1,0 @@
-add_subdirectory(core)
-add_subdirectory(window)
-add_subdirectory(font)
-add_subdirectory(symbol)
-add_subdirectory(camera)
-add_subdirectory(render)

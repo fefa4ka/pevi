@@ -15,7 +15,7 @@ struct Buffer *buffer_init(size_t size) {
   return buffer;
 }
 
-Buffer_t *file_open(void *filename) {
+Buffer_t *buffer_open(void *filename) {
   FILE *file;
   Buffer_t *buffer;
   struct lr_cell *owner_cell;
@@ -27,4 +27,13 @@ Buffer_t *file_open(void *filename) {
   lr_file_open(&buffer->lr, buffer->path, 0);
 
   return buffer;
+}
+
+void buffer_save(Buffer_t *buffer, char *filename) {
+  char *path = filename;
+  if (path == NULL) {
+    path = buffer->path;
+  }
+  lr_file_save(&buffer->lr, path);
+  return;
 }

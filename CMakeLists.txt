@@ -10,16 +10,14 @@ option(BUILD_TESTS "Build tests" OFF)
 
 # Add third party directory
 # Find raylib
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/raylib.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/third_party/raylib.cmake)
 add_subdirectory(third_party/linked_ring)
 
 # Include header files
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Add components directory
-add_subdirectory(lego)
 # Add main directory
-add_subdirectory(app)
+add_subdirectory(src)
 
 
 # Add tests if enabled

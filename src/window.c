@@ -10,6 +10,8 @@ void window_open(Window_t *window) {
   ToggleBorderlessWindowed();
 
   SetTargetFPS(window->fps_target);
+
+  SetExitKey(0);
 }
 
 void window_close(Window_t *window) {

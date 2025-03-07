@@ -53,8 +53,8 @@ void camera_handle(Camera_t *settings) {
   }
 }
 
-Vector3 CalculateBillboardAngles(Vector3 objectPosition, Vector3 cameraPosition,
-                                 Vector3 cameraUp) {
+Vector3 camera_billboard_angles(Vector3 objectPosition, Vector3 cameraPosition,
+                                Vector3 cameraUp) {
   Vector3 direction =
       Vector3Normalize(Vector3Subtract(cameraPosition, objectPosition));
 
@@ -72,18 +72,17 @@ Vector3 CalculateBillboardAngles(Vector3 objectPosition, Vector3 cameraPosition,
   pitch *= cosf(cameraUpAngle);
 
   // Calculate roll
- Vector3 right = Vector3CrossProduct(direction, cameraUp);
-    right = Vector3Normalize(right);
-    float roll = atan2f(Vector3DotProduct(right, (Vector3){0.0f, 0.0f, 1.0f}),
-                        Vector3DotProduct(right, (Vector3){0.0f, 1.0f, 0.0f}));
-    
+  Vector3 right = Vector3CrossProduct(direction, cameraUp);
+  right = Vector3Normalize(right);
+  float roll = atan2f(Vector3DotProduct(right, (Vector3){0.0f, 0.0f, 1.0f}),
+                      Vector3DotProduct(right, (Vector3){0.0f, 1.0f, 0.0f}));
+
   return (Vector3){pitch, yaw, 0};
 }
 
-
 Plane camera_plane(Camera3D *camera) {
   Vector3 angles =
-      CalculateBillboardAngles(camera->target, camera->position, camera->up);
+      camera_billboard_angles(camera->target, camera->position, camera->up);
 
   return (Plane){.pos = camera->target, .angles = angles};
 }
