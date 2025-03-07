@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "text.h"
 #include "error.h"
+#include "memory.h"
 
 bool phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
                            InputEvent_t *event) {
