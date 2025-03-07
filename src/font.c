@@ -28,7 +28,7 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
           
           // Load SDF required shader (we use default vertex shader)
           if (FileExists(shader_filename)) {
-            shader = LoadShader(0, TextFormat(shader_filename, 330));
+            shader = LoadShader(0, shader_filename);
             SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
           } else {
             printf("Warning: Shader file not found: %s\n", shader_filename);

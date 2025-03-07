@@ -19,6 +19,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 # Add main directory
 add_subdirectory(src)
 
+# Copy assets to build directory
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
+
 # Add tests if enabled
 if(BUILD_TESTS)
     enable_testing()
