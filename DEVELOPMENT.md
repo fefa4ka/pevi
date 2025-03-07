@@ -61,7 +61,7 @@ This document outlines the immediate development priorities for Pevi, the 3D cod
 
 ## Technical Debt to Address
 
-- Refactor the input handling system to better separate concerns
+- [x] Refactor the input handling system to better separate concerns
 - Improve memory management for buffers and phantoms
 - Add proper error handling throughout the codebase
 - Create a more robust UI framework for editor components
