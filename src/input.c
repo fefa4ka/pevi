@@ -3,6 +3,7 @@
 #include "error.h"
 #include "logger.h"
 #include "phantom.h"
+#include "phantom_list.h"
 #include "lr_file.h"
 #include <raylib.h>
 #include <stdio.h>
