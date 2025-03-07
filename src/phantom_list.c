@@ -285,7 +285,21 @@ bool phantom_list_set_active(PhantomList_t *list, PhantomNode_t *node) {
         return false;
     }
     
+    // Clear selection on all phantoms except the new active one
+    current = list->head;
+    while (current) {
+        if (current != node && current->phantom) {
+            current->phantom->is_selected = false;
+        }
+        current = current->next;
+    }
+    
+    // Set the new active phantom and ensure it's selected
     list->active = node;
+    if (node->phantom) {
+        node->phantom->is_selected = true;
+    }
+    
     LOG_INFO("Set active phantom to ID %d", node->phantom->id);
     return true;
 }

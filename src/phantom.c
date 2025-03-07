@@ -136,11 +136,26 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
 // Handles input events when the phantom is hovered.
 static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event) {
   if (phantom->is_hovered && event->source_type != INPUT_SOURCE_SYMBOL) {
-    event->source_type =
-        INPUT_SOURCE_PHANTOM; // (Assuming this constant exists.)
+    event->source_type = INPUT_SOURCE_PHANTOM;
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_CLICK;
       phantom->is_selected = !phantom->is_selected;
+      
+      // Set this phantom as the active one in the phantom list
+      extern Pevi_t pevi;
+      if (pevi.phantoms && phantom->is_selected) {
+        // Find this phantom in the list and make it active
+        PhantomNode_t *current = pevi.phantoms->head;
+        while (current) {
+          if (current->phantom == phantom) {
+            phantom_list_set_active(pevi.phantoms, current);
+            LOG_DEBUG("Set phantom with ID %d as active", phantom->id);
+            break;
+          }
+          current = current->next;
+        }
+      }
+      
       LOG_DEBUG("CLICK phantom %d", phantom->is_selected);
     } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_DRAG;
