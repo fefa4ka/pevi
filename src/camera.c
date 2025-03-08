@@ -3,6 +3,7 @@
 #include <raymath.h>
 #include <stdio.h>
 #include "logger.h"
+#include "phantom.h"
 #include "phantom_list.h"
 
 
