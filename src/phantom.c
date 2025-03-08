@@ -8,6 +8,12 @@
 #include "stdlib.h"
 #include "text.h"
 
+static struct {
+  bool active;         // Is drag currently active?
+  Phantom_t *phantom;  // Which phantom is being dragged
+  Vector3 start_pos;   // Starting position of the phantom
+  Vector2 start_mouse; // Starting position of the mouse
+} drag_state = {0};
 
 bool phantom_draw_on_plane(Phantom_t *phantom, Camera_t *camera,
                            InputEvent_t *event) {
@@ -145,109 +151,171 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
   }
 }
 
+// Calculate new position for phantom during drag operation
+static Vector3 phantom_drag_position_calculate(Camera_t *camera,
+                                               Vector3 current_pos) {
+  // Get the ray from camera to mouse position
+  Ray ray = GetMouseRay(GetMousePosition(), camera->camera);
 
- static Vector3 phantom_drag_position_calculate(Camera_t *camera, Vector3 current_pos) {
-   LOG_DEBUG("Calculating drag position from current=(%.2f,%.2f,%.2f)",
-            current_pos.x, current_pos.y, current_pos.z);
+  // Create a plane that's perpendicular to the camera view direction
+  Vector3 plane_normal = Vector3Normalize(
+      Vector3Subtract(camera->camera.position, camera->camera.target));
 
-   // Get the ray from camera to mouse position
-   Ray ray = GetMouseRay(GetMousePosition(), camera->camera);
+  // Calculate intersection of ray with a plane at the phantom's distance from
+  // camera
+  float denominator = Vector3DotProduct(ray.direction, plane_normal);
+  if (fabs(denominator) < 0.0001f) {
+    // Ray is parallel to plane, no intersection
+    return current_pos;
+  }
 
-   // Get the camera's forward direction (from position to target)
-   Vector3 camera_forward = Vector3Normalize(
-       Vector3Subtract(camera->camera.target, camera->camera.position));
+  // Calculate the plane constant d from the point-normal form of the plane
+  // equation
+  float d = -Vector3DotProduct(plane_normal, current_pos);
 
-   LOG_DEBUG("Camera forward=(%.2f,%.2f,%.2f)",
-            camera_forward.x, camera_forward.y, camera_forward.z);
+  // Calculate t where ray intersects the plane
+  float t = -(Vector3DotProduct(plane_normal, ray.position) + d) / denominator;
 
-   // Use this as the plane normal - this creates a plane facing the camera
-   Vector3 plane_normal = camera_forward;
+  if (t < 0) {
+    // Intersection is behind the camera
+    return current_pos;
+  }
 
-   // Calculate intersection of mouse ray with this plane
-   float denominator = Vector3DotProduct(ray.direction, plane_normal);
-   LOG_DEBUG("Ray direction=(%.2f,%.2f,%.2f), denominator=%.4f",
-            ray.direction.x, ray.direction.y, ray.direction.z, denominator);
+  // Calculate intersection point
+  Vector3 intersection =
+      Vector3Add(ray.position, Vector3Scale(ray.direction, t));
 
-   if (fabs(denominator) < 0.0001f) {
-     LOG_DEBUG("Ray is parallel to plane, no intersection");
-     return current_pos;
-   }
+  // If this is the first drag calculation, store the offset between
+  // the phantom position and the intersection point
+  static Vector3 drag_offset = {0};
+  static bool offset_calculated = false;
 
-   // Calculate t using the current phantom position as a point on the plane
-   float t = Vector3DotProduct(
-       plane_normal,
-       Vector3Subtract(current_pos, ray.position)
-   ) / denominator;
+  if (!offset_calculated && drag_state.active) {
+    // Calculate the offset from the intersection point to the phantom position
+    drag_offset = Vector3Subtract(current_pos, intersection);
+    offset_calculated = true;
+  }
 
-   LOG_DEBUG("Intersection parameter t=%.4f", t);
+  // Reset offset calculation when drag ends
+  if (!drag_state.active) {
+    offset_calculated = false;
+  }
 
-   if (t < 0) {
-     LOG_DEBUG("Intersection is behind the camera");
-     return current_pos;
-   }
+  // Apply the offset to maintain the relative position
+  Vector3 adjusted_position = Vector3Add(intersection, drag_offset);
 
-   // Calculate intersection point
-   Vector3 intersection = Vector3Add(ray.position, Vector3Scale(ray.direction, t));
+  // Apply some smoothing/damping to make movement less jerky
+  const float smoothing = 0.8f;
+  Vector3 new_pos = {
+      current_pos.x + (adjusted_position.x - current_pos.x) * smoothing,
+      current_pos.y + (adjusted_position.y - current_pos.y) * smoothing,
+      current_pos.z + (adjusted_position.z - current_pos.z) * smoothing};
 
-   LOG_DEBUG("Intersection point=(%.2f,%.2f,%.2f)",
-            intersection.x, intersection.y, intersection.z);
+  return new_pos;
+}
 
-   // Apply some smoothing/damping to make movement less jerky
-   const float smoothing = 0.8f;
-   Vector3 new_pos = {
-     current_pos.x + (intersection.x - current_pos.x) * smoothing,
-     current_pos.y + (intersection.y - current_pos.y) * smoothing,
-     current_pos.z + (intersection.z - current_pos.z) * smoothing
-   };
+// Handles input events when the phantom is hovered or being dragged
+static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
+                                 Camera_t *camera) {
+  // Check if we're already dragging this phantom
+  bool is_dragging = (drag_state.active && drag_state.phantom == phantom);
 
-   LOG_DEBUG("New position=(%.2f,%.2f,%.2f)", new_pos.x, new_pos.y, new_pos.z);
+  // Handle events when phantom is hovered or being dragged
+  if (phantom->is_hovered || is_dragging) {
+    event->source_type = INPUT_SOURCE_PHANTOM;
+    event->source = phantom;
 
-   return new_pos;
- }
+    // Handle mouse click - start potential drag
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      event->mouse = INPUT_MOUSE_CLICK;
+      phantom->is_selected = !phantom->is_selected;
 
+      // Set this phantom as the active one in the phantom list
+      extern Pevi_t pevi;
+      if (pevi.phantoms && phantom->is_selected) {
+        LOG_DEBUG("Setting phantom with ID %d as active", phantom->id);
+        phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
 
+        // Initialize drag state
+        drag_state.active = false;
+        drag_state.phantom = phantom;
+        drag_state.start_pos = phantom->plane.pos;
+        drag_state.start_mouse = GetMousePosition();
+      }
 
+      LOG_DEBUG("CLICK phantom %d", phantom->is_selected);
+    }
+    // Handle mouse drag - continue drag if already started or start if mouse
+    // moved enough
+    else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && phantom->is_selected) {
+      // Only reposition in free mode
+      extern Pevi_t pevi;
+      if (pevi.mode == PEVI_MODE_FREE) {
+        Vector2 current_mouse = GetMousePosition();
 
-// Handles input events when the phantom is hovered.
- static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event, Camera_t *camera) {
-   if (phantom->is_hovered) {
-     event->source_type = INPUT_SOURCE_PHANTOM;
-     event->source = phantom; // Store the phantom as the source
+        // Start drag if mouse has moved enough
+        if (!drag_state.active &&
+            Vector2Distance(current_mouse, drag_state.start_mouse) > 5.0f) {
+          drag_state.active = true;
+          LOG_DEBUG("Starting drag of phantom %d", phantom->id);
+        }
 
-     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-       event->mouse = INPUT_MOUSE_CLICK;
-       phantom->is_selected = !phantom->is_selected;
+        // Continue drag if active
+        if (drag_state.active) {
+          event->mouse = INPUT_MOUSE_DRAG;
 
-       // Set this phantom as the active one in the phantom list
-       extern Pevi_t pevi;
-       if (pevi.phantoms && phantom->is_selected) {
-         LOG_DEBUG("Setting phantom with ID %d as active", phantom->id);
-         phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
-       }
+          // Calculate new position based on mouse movement
+          Vector3 new_pos =
+              phantom_drag_position_calculate(camera, phantom->plane.pos);
 
-       LOG_DEBUG("CLICK phantom %d", phantom->is_selected);
-     } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && phantom->is_selected) {
-       event->mouse = INPUT_MOUSE_DRAG;
+          // Update phantom position
+          phantom->plane.pos = new_pos;
 
-       // Only reposition in free mode
-       extern Pevi_t pevi;
-       if (pevi.mode == PEVI_MODE_FREE) {
-         // Calculate new position based on mouse movement
-         Vector3 new_pos = phantom_drag_position_calculate(camera, phantom->plane.pos);
+          LOG_DEBUG("DRAG phantom to position: %.2f, %.2f, %.2f",
+                    phantom->plane.pos.x, phantom->plane.pos.y,
+                    phantom->plane.pos.z);
+        }
+      }
+    }
+    // Handle mouse release - end drag
+    else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+      event->mouse = INPUT_MOUSE_RELEASE;
 
-         // Update phantom position
-         phantom->plane.pos = new_pos;
+      // End drag if active
+      if (drag_state.active) {
+        LOG_DEBUG("Ending drag of phantom %d", phantom->id);
+        drag_state.active = false;
+        drag_state.phantom = NULL;
+      }
 
-         LOG_DEBUG("DRAG phantom to position: %.2f, %.2f, %.2f",
-                   phantom->plane.pos.x, phantom->plane.pos.y, phantom->plane.pos.z);
-       }
-     } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-       event->mouse = INPUT_MOUSE_RELEASE;
-       LOG_DEBUG("RELEASE phantom");
-     }
-   }
- }
+      LOG_DEBUG("RELEASE phantom");
+    }
+  }
 
+  // Special case: if we're dragging this phantom but mouse is no longer over
+  // it, we still need to handle the drag
+  else if (drag_state.active && drag_state.phantom == phantom &&
+           IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    event->source_type = INPUT_SOURCE_PHANTOM;
+    event->source = phantom;
+    event->mouse = INPUT_MOUSE_DRAG;
+
+    // Only reposition in free mode
+    extern Pevi_t pevi;
+    if (pevi.mode == PEVI_MODE_FREE) {
+      // Calculate new position based on mouse movement
+      Vector3 new_pos =
+          phantom_drag_position_calculate(camera, phantom->plane.pos);
+
+      // Update phantom position
+      phantom->plane.pos = new_pos;
+
+      LOG_DEBUG("DRAG phantom (outside) to position: %.2f, %.2f, %.2f",
+                phantom->plane.pos.x, phantom->plane.pos.y,
+                phantom->plane.pos.z);
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Main Phantom Draw Function
