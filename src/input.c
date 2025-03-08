@@ -144,15 +144,35 @@ bool input_check_mode_switch(Pevi_t *pevi, InputEvent_t *event, Camera_t *camera
   if (pevi->mode == PEVI_MODE_FREE) {
     int key = GetCharPressed();
     if (key == 'e') {
-      LOG_INFO("Switching to Edit mode");
-      pevi->mode = PEVI_MODE_EDIT;
-      camera_set_mode(camera, PEVI_MODE_EDIT);
-      return true;
+      // Only switch to edit mode if there's an active phantom
+      Phantom_t *active = phantom_list_get_active(pevi->phantoms);
+      if (active) {
+        LOG_INFO("Switching to Edit mode");
+        pevi->mode = PEVI_MODE_EDIT;
+        camera_set_mode(camera, PEVI_MODE_EDIT);
+        return true;
+      } else {
+        LOG_WARNING("Cannot switch to Edit mode: no active phantom");
+      }
     } 
     else if (key == ':') {
       LOG_INFO("Switching to Command mode");
       pevi->mode = PEVI_MODE_COMMAND;
       camera_set_mode(camera, PEVI_MODE_COMMAND);
+      return true;
+    }
+    else if (key == 'v') {
+      LOG_INFO("Switching to 2D view");
+      // Call the view_2d function directly
+      extern void view_2d(void *arg);
+      view_2d(NULL);
+      return true;
+    }
+    else if (key == 'V') {
+      LOG_INFO("Switching to 3D view");
+      // Call the view_3d function directly
+      extern void view_3d(void *arg);
+      view_3d(NULL);
       return true;
     }
   } 
