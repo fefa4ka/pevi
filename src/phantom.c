@@ -176,19 +176,19 @@ static Vector3 phantom_drag_position_calculate(Camera_t *camera,
     LOG_DEBUG("Initial distance to camera: %.2f", initial_distance);
   }
   
-  // Create a plane that's perpendicular to the camera view direction
-  // This ensures the phantom stays at a constant distance from the camera
-  Vector3 view_direction = Vector3Normalize(
+  // Create a plane that's aligned with the camera view plane
+  // This is the same approach used in camera_plane()
+  Vector3 camera_forward = Vector3Normalize(
       Vector3Subtract(camera->camera.target, camera->camera.position));
   
   // Create a point on the plane at the initial distance from the camera
   Vector3 plane_point = Vector3Add(
       camera->camera.position,
-      Vector3Scale(view_direction, initial_distance)
+      Vector3Scale(camera_forward, initial_distance)
   );
   
-  // The plane normal is the same as the view direction
-  Vector3 plane_normal = view_direction;
+  // The plane normal is the same as the camera forward direction
+  Vector3 plane_normal = camera_forward;
   
   // Calculate intersection of ray with this plane
   float denominator = Vector3DotProduct(ray.direction, plane_normal);
@@ -226,12 +226,14 @@ static Vector3 phantom_drag_position_calculate(Camera_t *camera,
   // Apply the offset to maintain the relative position
   Vector3 adjusted_position = Vector3Add(intersection, drag_offset.offset);
   
-  // Ensure we maintain the exact same distance from camera
-  Vector3 dir_to_adjusted = Vector3Normalize(
-      Vector3Subtract(adjusted_position, camera->camera.position));
+  // Ensure we maintain the exact same distance from camera and stay on the camera plane
+  Vector3 camera_to_adjusted = Vector3Subtract(adjusted_position, camera->camera.position);
+  float current_distance = Vector3Length(camera_to_adjusted);
+  
+  // Scale to maintain the original distance
   Vector3 fixed_position = Vector3Add(
       camera->camera.position,
-      Vector3Scale(dir_to_adjusted, initial_distance)
+      Vector3Scale(Vector3Normalize(camera_to_adjusted), initial_distance)
   );
   
   // Apply some smoothing/damping to make movement less jerky
@@ -295,16 +297,9 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
           drag_offset.phantom = NULL;
           
           // Make phantom face the camera when drag starts
-          Vector3 camera_forward = Vector3Normalize(
-              Vector3Subtract(camera->camera.target, camera->camera.position));
-          
-          // Calculate angles to face the camera
-          Vector3 angles = {0};
-          angles.y = atan2f(camera_forward.x, camera_forward.z);
-          angles.x = atan2f(camera_forward.y, sqrtf(camera_forward.x * camera_forward.x + camera_forward.z * camera_forward.z));
-          
-          // Update phantom orientation
-          phantom->plane.angles = angles;
+          // Use the camera_plane function to get proper alignment
+          Plane camera_plane_alignment = camera_plane(&camera->camera);
+          phantom->plane.angles = camera_plane_alignment.angles;
           
           LOG_DEBUG("Starting drag of phantom %d", phantom->id);
         }
