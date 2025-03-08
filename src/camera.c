@@ -57,18 +57,52 @@ void camera_handle(Camera_t *settings) {
 
 // Set camera mode based on editor mode
 void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
+  extern Pevi_t pevi;
+  
   switch (editor_mode) {
     case PEVI_MODE_FREE:
+      // Restore saved camera state if coming from edit mode
+      if (pevi.mode == PEVI_MODE_EDIT) {
+        camera->camera.position = camera->saved_state.position;
+        camera->camera.target = camera->saved_state.target;
+        camera->camera.projection = camera->saved_state.projection;
+        LOG_INFO("Restored camera state from edit mode");
+      }
+      
       camera->is_enabled = true;
       camera->is_movable = true;
       camera->is_mouse_enabled = true;
-      camera->camera.projection = CAMERA_PERSPECTIVE;
       break;
       
     case PEVI_MODE_EDIT:
+      // Save current camera state before switching to edit mode
+      camera->saved_state.position = camera->camera.position;
+      camera->saved_state.target = camera->camera.target;
+      camera->saved_state.projection = camera->camera.projection;
+      LOG_INFO("Saved camera state for edit mode");
+      
+      // Point camera at active phantom
+      Phantom_t *active = phantom_list_get_active(pevi.phantoms);
+      if (active) {
+        // Position camera to face the phantom directly
+        Vector3 phantom_pos = active->plane.pos;
+        Vector3 phantom_normal = {
+          sinf(active->plane.angles.y) * cosf(active->plane.angles.x),
+          sinf(active->plane.angles.x),
+          cosf(active->plane.angles.y) * cosf(active->plane.angles.x)
+        };
+        
+        // Position camera at a fixed distance from phantom
+        float distance = 10.0f;
+        camera->camera.position = Vector3Add(phantom_pos, Vector3Scale(phantom_normal, distance));
+        camera->camera.target = phantom_pos;
+        camera->camera.projection = CAMERA_ORTHOGRAPHIC;
+        
+        LOG_INFO("Camera positioned to face phantom in edit mode");
+      }
+      
       camera->is_enabled = false;
       camera->is_movable = false;
-      camera->camera.projection = CAMERA_ORTHOGRAPHIC;
       break;
       
     case PEVI_MODE_COMMAND:

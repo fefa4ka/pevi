@@ -10,6 +10,13 @@ typedef struct {
   bool is_mouse_enabled;
   bool is_enabled;
 
+  // For saving camera state when switching modes
+  struct {
+    Vector3 position;
+    Vector3 target;
+    CameraProjection projection;
+  } saved_state;
+
   Ray ray;
   Ray ray_center;
 } Camera_t;
