@@ -233,11 +233,13 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
     // Handle mouse click - start potential drag
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_CLICK;
-      phantom->is_selected = !phantom->is_selected;
+      
+      // Always select the phantom on click, don't toggle
+      phantom->is_selected = true;
 
       // Set this phantom as the active one in the phantom list
       extern Pevi_t pevi;
-      if (pevi.phantoms && phantom->is_selected) {
+      if (pevi.phantoms) {
         LOG_DEBUG("Setting phantom with ID %d as active", phantom->id);
         phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
 
@@ -248,7 +250,7 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
         drag_state.start_mouse = GetMousePosition();
       }
 
-      LOG_DEBUG("CLICK phantom %d", phantom->is_selected);
+      LOG_DEBUG("CLICK phantom %d (selected)", phantom->id);
     }
     // Handle mouse drag - continue drag if already started or start if mouse
     // moved enough
