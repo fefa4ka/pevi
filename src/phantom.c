@@ -314,6 +314,10 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
 
           // Update phantom position
           phantom->plane.pos = new_pos;
+          
+          // Keep phantom aligned with camera during drag
+          Plane camera_plane_alignment = camera_plane(&camera->camera);
+          phantom->plane.angles = camera_plane_alignment.angles;
 
           LOG_DEBUG("DRAG phantom to position: %.2f, %.2f, %.2f",
                     phantom->plane.pos.x, phantom->plane.pos.y,
@@ -357,6 +361,10 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
 
       // Update phantom position
       phantom->plane.pos = new_pos;
+      
+      // Keep phantom aligned with camera during drag
+      Plane camera_plane_alignment = camera_plane(&camera->camera);
+      phantom->plane.angles = camera_plane_alignment.angles;
 
       LOG_DEBUG("DRAG phantom (outside) to position: %.2f, %.2f, %.2f",
                 phantom->plane.pos.x, phantom->plane.pos.y,
