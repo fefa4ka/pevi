@@ -45,11 +45,22 @@ void camera_handle(Camera_t *settings) {
   }
 
   if (settings->is_enabled) {
-    UpdateCameraPro(camera, movement,
-                    (Vector3){dx, // Rotation: yaw
-                              dy, // Rotation: pitch
-                              0},
-                    GetMouseWheelMove() * 2.0f); // Move to target (zoom)
+    // Handle mouse wheel zoom separately to work in all modes
+    float wheel_move = GetMouseWheelMove() * 2.0f;
+    
+    // In edit mode, only apply zoom (no movement or rotation)
+    extern Pevi_t pevi;
+    if (pevi.mode == PEVI_MODE_EDIT) {
+      // Only apply zoom in edit mode
+      UpdateCameraPro(camera, (Vector3){0}, (Vector3){0}, wheel_move);
+    } else {
+      // Normal camera update in other modes
+      UpdateCameraPro(camera, movement,
+                      (Vector3){dx, // Rotation: yaw
+                                dy, // Rotation: pitch
+                                0},
+                      wheel_move); // Move to target (zoom)
+    }
     
     // Update ray for collision detection
     settings->ray = GetMouseRay(GetMousePosition(), *camera);
@@ -69,6 +80,7 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
         camera->camera.position = camera->saved_state.position;
         camera->camera.target = camera->saved_state.target;
         camera->camera.projection = camera->saved_state.projection;
+        camera->is_mouse_enabled = true;  // Ensure mouse is enabled
         LOG_INFO("Restored camera state from edit mode");
       }
       
@@ -89,23 +101,33 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
       if (active) {
         // Position camera to face the phantom directly
         Vector3 phantom_pos = active->plane.pos;
+        
+        // Calculate the center of the phantom text area
+        Vector4 phantom_size = phantom_measure(active);
+        Vector3 phantom_center = {
+          phantom_pos.x + phantom_size.x / 2.0f,
+          phantom_pos.y,
+          phantom_pos.z + phantom_size.z / 2.0f
+        };
+        
         Vector3 phantom_normal = {
           sinf(active->plane.angles.y) * cosf(active->plane.angles.x),
           sinf(active->plane.angles.x),
           cosf(active->plane.angles.y) * cosf(active->plane.angles.x)
         };
         
-        // Position camera at a fixed distance from phantom
+        // Position camera at a fixed distance from phantom center
         float distance = 10.0f;
-        camera->camera.position = Vector3Add(phantom_pos, Vector3Scale(phantom_normal, distance));
-        camera->camera.target = phantom_pos;
+        camera->camera.position = Vector3Add(phantom_center, Vector3Scale(phantom_normal, distance));
+        camera->camera.target = phantom_center;
         camera->camera.projection = CAMERA_ORTHOGRAPHIC;
         
-        LOG_INFO("Camera positioned to face phantom in edit mode");
+        LOG_INFO("Camera positioned to face phantom center in edit mode");
       }
       
-      camera->is_enabled = false;
+      camera->is_enabled = true;  // Keep camera enabled for mouse wheel
       camera->is_movable = false;
+      camera->is_mouse_enabled = false;  // Disable mouse look but keep wheel
       break;
       
     case PEVI_MODE_COMMAND:
