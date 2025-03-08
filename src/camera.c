@@ -115,27 +115,32 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
         LOG_DEBUG("Phantom center: x=%.2f, y=%.2f, z=%.2f", 
                  phantom_center.x, phantom_center.y, phantom_center.z);
         
-        // Calculate the normal vector perpendicular to the phantom's plane
-        // This is the direction the phantom is facing
-        Vector3 phantom_normal = {
+        // Instead of using the phantom's normal, we need to position the camera
+        // to look at the front face of the phantom
+        
+        // Get the phantom's forward direction (normal to its plane)
+        Vector3 phantom_forward = {
           sinf(active->plane.angles.y) * cosf(active->plane.angles.x),
           sinf(active->plane.angles.x),
           cosf(active->plane.angles.y) * cosf(active->plane.angles.x)
         };
         
         // Normalize the vector to ensure it has unit length
-        phantom_normal = Vector3Normalize(phantom_normal);
+        phantom_forward = Vector3Normalize(phantom_forward);
+        
+        // The camera should be positioned opposite to the phantom's forward direction
+        Vector3 camera_direction = Vector3Negate(phantom_forward);
         
         LOG_DEBUG("Phantom angles: x=%.2f, y=%.2f, z=%.2f", 
                  active->plane.angles.x, active->plane.angles.y, active->plane.angles.z);
-        LOG_DEBUG("Phantom normal: x=%.2f, y=%.2f, z=%.2f", 
-                 phantom_normal.x, phantom_normal.y, phantom_normal.z);
+        LOG_DEBUG("Camera direction: x=%.2f, y=%.2f, z=%.2f", 
+                 camera_direction.x, camera_direction.y, camera_direction.z);
         
         // Position camera at a fixed distance from phantom center
         float distance = 10.0f;
         
-        // Calculate camera position based on phantom's orientation
-        Vector3 camera_pos = Vector3Add(phantom_center, Vector3Scale(phantom_normal, distance));
+        // Calculate camera position based on the direction opposite to phantom's forward
+        Vector3 camera_pos = Vector3Add(phantom_center, Vector3Scale(camera_direction, distance));
         
         // Set camera position and target
         camera->camera.position = camera_pos;
@@ -145,7 +150,10 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
                  camera_pos.x, camera_pos.y, camera_pos.z);
         camera->camera.projection = CAMERA_ORTHOGRAPHIC;
         
-        LOG_INFO("Camera positioned to face phantom center in edit mode");
+        // Ensure the camera's up vector is correct
+        camera->camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
+        
+        LOG_INFO("Camera positioned to face phantom front in edit mode");
       }
       
       camera->is_enabled = true;  // Keep camera enabled for mouse wheel
