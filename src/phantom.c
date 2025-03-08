@@ -154,6 +154,8 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
 // Calculate new position for phantom during drag operation
 static Vector3 phantom_drag_position_calculate(Camera_t *camera,
                                                Vector3 current_pos) {
+  LOG_DEBUG("Calculating drag position for phantom %d", 
+           drag_state.phantom ? drag_state.phantom->id : -1);
   // Get the ray from camera to mouse position
   Ray ray = GetMouseRay(GetMousePosition(), camera->camera);
 
@@ -185,24 +187,20 @@ static Vector3 phantom_drag_position_calculate(Camera_t *camera,
   Vector3 intersection =
       Vector3Add(ray.position, Vector3Scale(ray.direction, t));
 
-  // If this is the first drag calculation, store the offset between
-  // the phantom position and the intersection point
-  static Vector3 drag_offset = {0};
-  static bool offset_calculated = false;
-
-  if (!offset_calculated && drag_state.active) {
+  // If this is the first drag calculation for this phantom, calculate the offset
+  if ((!drag_offset.initialized || drag_offset.phantom != drag_state.phantom) && drag_state.active) {
     // Calculate the offset from the intersection point to the phantom position
-    drag_offset = Vector3Subtract(current_pos, intersection);
-    offset_calculated = true;
-  }
-
-  // Reset offset calculation when drag ends
-  if (!drag_state.active) {
-    offset_calculated = false;
+    drag_offset.offset = Vector3Subtract(current_pos, intersection);
+    drag_offset.initialized = true;
+    drag_offset.phantom = drag_state.phantom;
+    
+    LOG_DEBUG("Initialized drag offset=(%.2f,%.2f,%.2f) for phantom %d",
+             drag_offset.offset.x, drag_offset.offset.y, drag_offset.offset.z,
+             drag_state.phantom ? drag_state.phantom->id : -1);
   }
 
   // Apply the offset to maintain the relative position
-  Vector3 adjusted_position = Vector3Add(intersection, drag_offset);
+  Vector3 adjusted_position = Vector3Add(intersection, drag_offset.offset);
 
   // Apply some smoothing/damping to make movement less jerky
   const float smoothing = 0.8f;
@@ -257,6 +255,11 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
         if (!drag_state.active &&
             Vector2Distance(current_mouse, drag_state.start_mouse) > 5.0f) {
           drag_state.active = true;
+          
+          // Reset drag offset when starting a new drag
+          drag_offset.initialized = false;
+          drag_offset.phantom = NULL;
+          
           LOG_DEBUG("Starting drag of phantom %d", phantom->id);
         }
 
@@ -286,6 +289,10 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
         LOG_DEBUG("Ending drag of phantom %d", phantom->id);
         drag_state.active = false;
         drag_state.phantom = NULL;
+        
+        // Reset drag offset
+        drag_offset.initialized = false;
+        drag_offset.phantom = NULL;
       }
 
       LOG_DEBUG("RELEASE phantom");
