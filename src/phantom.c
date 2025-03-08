@@ -8,6 +8,13 @@
 #include "stdlib.h"
 #include "text.h"
 
+// For tracking the initial click offset during drag operations
+static struct {
+  bool initialized;
+  Vector3 offset;
+  Phantom_t *phantom; // Track which phantom the offset is for
+} drag_offset = {false, {0}, NULL};
+
 static struct {
   bool active;         // Is drag currently active?
   Phantom_t *phantom;  // Which phantom is being dragged
