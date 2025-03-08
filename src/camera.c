@@ -111,16 +111,38 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
           phantom_pos.z + phantom_size.z / 2.0f
         };
         
+        LOG_DEBUG("Phantom size: width=%.2f, height=%.2f", phantom_size.x, phantom_size.z);
+        LOG_DEBUG("Phantom center: x=%.2f, y=%.2f, z=%.2f", 
+                 phantom_center.x, phantom_center.y, phantom_center.z);
+        
+        // Calculate the normal vector perpendicular to the phantom's plane
+        // This is the direction the phantom is facing
         Vector3 phantom_normal = {
           sinf(active->plane.angles.y) * cosf(active->plane.angles.x),
           sinf(active->plane.angles.x),
           cosf(active->plane.angles.y) * cosf(active->plane.angles.x)
         };
         
+        // Normalize the vector to ensure it has unit length
+        phantom_normal = Vector3Normalize(phantom_normal);
+        
+        LOG_DEBUG("Phantom angles: x=%.2f, y=%.2f, z=%.2f", 
+                 active->plane.angles.x, active->plane.angles.y, active->plane.angles.z);
+        LOG_DEBUG("Phantom normal: x=%.2f, y=%.2f, z=%.2f", 
+                 phantom_normal.x, phantom_normal.y, phantom_normal.z);
+        
         // Position camera at a fixed distance from phantom center
         float distance = 10.0f;
-        camera->camera.position = Vector3Add(phantom_center, Vector3Scale(phantom_normal, distance));
+        
+        // Calculate camera position based on phantom's orientation
+        Vector3 camera_pos = Vector3Add(phantom_center, Vector3Scale(phantom_normal, distance));
+        
+        // Set camera position and target
+        camera->camera.position = camera_pos;
         camera->camera.target = phantom_center;
+        
+        LOG_DEBUG("Camera position: x=%.2f, y=%.2f, z=%.2f", 
+                 camera_pos.x, camera_pos.y, camera_pos.z);
         camera->camera.projection = CAMERA_ORTHOGRAPHIC;
         
         LOG_INFO("Camera positioned to face phantom center in edit mode");
