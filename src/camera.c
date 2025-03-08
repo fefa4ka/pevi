@@ -2,6 +2,9 @@
 #include "error.h"
 #include <raymath.h>
 #include <stdio.h>
+#include "logger.h"
+#include "phantom_list.h"
+
 
 void camera_handle(Camera_t *settings) {
   Camera3D *camera = &settings->camera;
