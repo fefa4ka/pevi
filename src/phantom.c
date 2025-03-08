@@ -163,36 +163,53 @@ static Vector3 phantom_drag_position_calculate(Camera_t *camera,
                                                Vector3 current_pos) {
   LOG_DEBUG("Calculating drag position for phantom %d", 
            drag_state.phantom ? drag_state.phantom->id : -1);
+  
   // Get the ray from camera to mouse position
   Ray ray = GetMouseRay(GetMousePosition(), camera->camera);
-
+  
+  // Store the initial distance from camera to phantom when drag starts
+  static float initial_distance = 0.0f;
+  
+  // On first drag calculation, store the initial distance
+  if (!drag_offset.initialized || drag_offset.phantom != drag_state.phantom) {
+    initial_distance = Vector3Distance(camera->camera.position, current_pos);
+    LOG_DEBUG("Initial distance to camera: %.2f", initial_distance);
+  }
+  
   // Create a plane that's perpendicular to the camera view direction
-  Vector3 plane_normal = Vector3Normalize(
-      Vector3Subtract(camera->camera.position, camera->camera.target));
-
-  // Calculate intersection of ray with a plane at the phantom's distance from
-  // camera
+  // This ensures the phantom stays at a constant distance from the camera
+  Vector3 view_direction = Vector3Normalize(
+      Vector3Subtract(camera->camera.target, camera->camera.position));
+  
+  // Create a point on the plane at the initial distance from the camera
+  Vector3 plane_point = Vector3Add(
+      camera->camera.position,
+      Vector3Scale(view_direction, initial_distance)
+  );
+  
+  // The plane normal is the same as the view direction
+  Vector3 plane_normal = view_direction;
+  
+  // Calculate intersection of ray with this plane
   float denominator = Vector3DotProduct(ray.direction, plane_normal);
   if (fabs(denominator) < 0.0001f) {
     // Ray is parallel to plane, no intersection
     return current_pos;
   }
-
-  // Calculate the plane constant d from the point-normal form of the plane
-  // equation
-  float d = -Vector3DotProduct(plane_normal, current_pos);
-
+  
+  // Calculate the plane constant d from the point-normal form of the plane equation
+  float d = -Vector3DotProduct(plane_normal, plane_point);
+  
   // Calculate t where ray intersects the plane
   float t = -(Vector3DotProduct(plane_normal, ray.position) + d) / denominator;
-
+  
   if (t < 0) {
     // Intersection is behind the camera
     return current_pos;
   }
-
+  
   // Calculate intersection point
-  Vector3 intersection =
-      Vector3Add(ray.position, Vector3Scale(ray.direction, t));
+  Vector3 intersection = Vector3Add(ray.position, Vector3Scale(ray.direction, t));
 
   // If this is the first drag calculation for this phantom, calculate the offset
   if ((!drag_offset.initialized || drag_offset.phantom != drag_state.phantom) && drag_state.active) {
@@ -208,13 +225,21 @@ static Vector3 phantom_drag_position_calculate(Camera_t *camera,
 
   // Apply the offset to maintain the relative position
   Vector3 adjusted_position = Vector3Add(intersection, drag_offset.offset);
-
+  
+  // Ensure we maintain the exact same distance from camera
+  Vector3 dir_to_adjusted = Vector3Normalize(
+      Vector3Subtract(adjusted_position, camera->camera.position));
+  Vector3 fixed_position = Vector3Add(
+      camera->camera.position,
+      Vector3Scale(dir_to_adjusted, initial_distance)
+  );
+  
   // Apply some smoothing/damping to make movement less jerky
   const float smoothing = 0.8f;
   Vector3 new_pos = {
-      current_pos.x + (adjusted_position.x - current_pos.x) * smoothing,
-      current_pos.y + (adjusted_position.y - current_pos.y) * smoothing,
-      current_pos.z + (adjusted_position.z - current_pos.z) * smoothing};
+      current_pos.x + (fixed_position.x - current_pos.x) * smoothing,
+      current_pos.y + (fixed_position.y - current_pos.y) * smoothing,
+      current_pos.z + (fixed_position.z - current_pos.z) * smoothing};
 
   return new_pos;
 }
@@ -268,6 +293,18 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
           // Reset drag offset when starting a new drag
           drag_offset.initialized = false;
           drag_offset.phantom = NULL;
+          
+          // Make phantom face the camera when drag starts
+          Vector3 camera_forward = Vector3Normalize(
+              Vector3Subtract(camera->camera.target, camera->camera.position));
+          
+          // Calculate angles to face the camera
+          Vector3 angles = {0};
+          angles.y = atan2f(camera_forward.x, camera_forward.z);
+          angles.x = atan2f(camera_forward.y, sqrtf(camera_forward.x * camera_forward.x + camera_forward.z * camera_forward.z));
+          
+          // Update phantom orientation
+          phantom->plane.angles = angles;
           
           LOG_DEBUG("Starting drag of phantom %d", phantom->id);
         }
