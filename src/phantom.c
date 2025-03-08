@@ -262,7 +262,7 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
 
         // Start drag if mouse has moved enough
         if (!drag_state.active &&
-            Vector2Distance(current_mouse, drag_state.start_mouse) > 5.0f) {
+            Vector2Distance(current_mouse, drag_state.start_mouse) > 1.0f) {
           drag_state.active = true;
           
           // Reset drag offset when starting a new drag
@@ -376,7 +376,7 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
   EndShaderMode();
 
   // Handle input events for the phantom.
-  if (phantom->is_hovered) {
+  if (phantom->is_hovered || (drag_state.active && drag_state.phantom == phantom)) {
     phantom_event_handle(phantom, event, camera);
   }
 
