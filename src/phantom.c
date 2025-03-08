@@ -479,7 +479,7 @@ phantom_line_measure_get(const Buffer_t *buffer, size_t line_no,
 // Phantom Measure Function
 // ---------------------------------------------------------------------------
 
-static Vector4 phantom_measure(const Phantom_t *phantom) {
+Vector4 phantom_measure(const Phantom_t *phantom) {
   // Extract font settings.
   FontSettings_t settings = phantom->font;
   Font_t font_wrapper = settings.font;

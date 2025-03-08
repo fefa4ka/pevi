@@ -1,11 +1,10 @@
 #include "camera.h"
 #include "error.h"
-#include <raymath.h>
-#include <stdio.h>
 #include "logger.h"
 #include "phantom.h"
 #include "phantom_list.h"
-
+#include <raymath.h>
+#include <stdio.h>
 
 void camera_handle(Camera_t *settings) {
   Camera3D *camera = &settings->camera;
@@ -48,7 +47,7 @@ void camera_handle(Camera_t *settings) {
   if (settings->is_enabled) {
     // Handle mouse wheel zoom separately to work in all modes
     float wheel_move = GetMouseWheelMove() * 2.0f;
-    
+
     // In edit mode, only apply zoom (no movement or rotation)
     extern Pevi_t pevi;
     if (pevi.mode == PEVI_MODE_EDIT) {
@@ -62,7 +61,7 @@ void camera_handle(Camera_t *settings) {
                                 0},
                       wheel_move); // Move to target (zoom)
     }
-    
+
     // Update ray for collision detection
     settings->ray = GetMouseRay(GetMousePosition(), *camera);
     settings->ray_center = GetMouseRay(
@@ -73,102 +72,104 @@ void camera_handle(Camera_t *settings) {
 // Set camera mode based on editor mode
 void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
   extern Pevi_t pevi;
-  
+
   switch (editor_mode) {
-    case PEVI_MODE_FREE:
-      // Restore saved camera state if coming from edit mode
-      if (pevi.mode == PEVI_MODE_EDIT) {
-        camera->camera.position = camera->saved_state.position;
-        camera->camera.target = camera->saved_state.target;
-        camera->camera.projection = camera->saved_state.projection;
-        camera->is_mouse_enabled = true;  // Ensure mouse is enabled
-        LOG_INFO("Restored camera state from edit mode");
-      }
-      
-      camera->is_enabled = true;
-      camera->is_movable = true;
-      camera->is_mouse_enabled = true;
-      break;
-      
-    case PEVI_MODE_EDIT:
-      // Save current camera state before switching to edit mode
-      camera->saved_state.position = camera->camera.position;
-      camera->saved_state.target = camera->camera.target;
-      camera->saved_state.projection = camera->camera.projection;
-      LOG_INFO("Saved camera state for edit mode");
-      
-      // Point camera at active phantom
-      Phantom_t *active = phantom_list_get_active(pevi.phantoms);
-      if (active) {
-        // Position camera to face the phantom directly
-        Vector3 phantom_pos = active->plane.pos;
-        
-        // Calculate the center of the phantom text area
-        Vector4 phantom_size = phantom_measure(active);
-        Vector3 phantom_center = {
-          phantom_pos.x + phantom_size.x / 2.0f,
-          phantom_pos.y,
-          phantom_pos.z + phantom_size.z / 2.0f
-        };
-        
-        LOG_DEBUG("Phantom size: width=%.2f, height=%.2f", phantom_size.x, phantom_size.z);
-        LOG_DEBUG("Phantom center: x=%.2f, y=%.2f, z=%.2f", 
-                 phantom_center.x, phantom_center.y, phantom_center.z);
-        
-        // Instead of using the phantom's normal, we need to position the camera
-        // to look at the front face of the phantom
-        
-        // Get the phantom's forward direction (normal to its plane)
-        Vector3 phantom_forward = {
-          sinf(active->plane.angles.y) * cosf(active->plane.angles.x),
-          sinf(active->plane.angles.x),
-          cosf(active->plane.angles.y) * cosf(active->plane.angles.x)
-        };
-        
-        // Normalize the vector to ensure it has unit length
-        phantom_forward = Vector3Normalize(phantom_forward);
-        
-        // The camera should be positioned opposite to the phantom's forward direction
-        Vector3 camera_direction = Vector3Negate(phantom_forward);
-        
-        LOG_DEBUG("Phantom angles: x=%.2f, y=%.2f, z=%.2f", 
-                 active->plane.angles.x, active->plane.angles.y, active->plane.angles.z);
-        LOG_DEBUG("Camera direction: x=%.2f, y=%.2f, z=%.2f", 
-                 camera_direction.x, camera_direction.y, camera_direction.z);
-        
-        // Position camera at a fixed distance from phantom center
-        float distance = 10.0f;
-        
-        // Calculate camera position based on the direction opposite to phantom's forward
-        Vector3 camera_pos = Vector3Add(phantom_center, Vector3Scale(camera_direction, distance));
-        
-        // Set camera position and target
-        camera->camera.position = camera_pos;
-        camera->camera.target = phantom_center;
-        
-        LOG_DEBUG("Camera position: x=%.2f, y=%.2f, z=%.2f", 
-                 camera_pos.x, camera_pos.y, camera_pos.z);
-        camera->camera.projection = CAMERA_ORTHOGRAPHIC;
-        
-        // Ensure the camera's up vector is correct
-        camera->camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
-        
-        LOG_INFO("Camera positioned to face phantom front in edit mode");
-      }
-      
-      camera->is_enabled = true;  // Keep camera enabled for mouse wheel
-      camera->is_movable = false;
-      camera->is_mouse_enabled = false;  // Disable mouse look but keep wheel
-      break;
-      
-    case PEVI_MODE_COMMAND:
-      camera->is_enabled = false;
-      camera->is_movable = false;
-      break;
-      
-    default:
-      // Keep current settings for other modes
-      break;
+  case PEVI_MODE_FREE:
+    // Restore saved camera state if coming from edit mode
+    if (pevi.mode == PEVI_MODE_EDIT) {
+      camera->camera.position = camera->saved_state.position;
+      camera->camera.target = camera->saved_state.target;
+      camera->camera.projection = camera->saved_state.projection;
+      camera->is_mouse_enabled = true; // Ensure mouse is enabled
+      LOG_INFO("Restored camera state from edit mode");
+    }
+
+    camera->is_enabled = true;
+    camera->is_movable = true;
+    camera->is_mouse_enabled = true;
+    break;
+
+  case PEVI_MODE_EDIT:
+    // Save current camera state before switching to edit mode
+    camera->saved_state.position = camera->camera.position;
+    camera->saved_state.target = camera->camera.target;
+    camera->saved_state.projection = camera->camera.projection;
+    LOG_INFO("Saved camera state for edit mode");
+
+    // Point camera at active phantom
+    Phantom_t *active = phantom_list_get_active(pevi.phantoms);
+    if (active) {
+      // Position camera to face the phantom directly
+      Vector3 phantom_pos = active->plane.pos;
+
+      // Calculate the center of the phantom text area
+      Vector4 phantom_size = phantom_measure(active);
+      Vector3 phantom_center = {phantom_pos.x + phantom_size.x / 2.0f,
+                                phantom_pos.y,
+                                phantom_pos.z + phantom_size.z / 2.0f};
+
+      LOG_DEBUG("Phantom size: width=%.2f, height=%.2f", phantom_size.x,
+                phantom_size.z);
+      LOG_DEBUG("Phantom center: x=%.2f, y=%.2f, z=%.2f", phantom_center.x,
+                phantom_center.y, phantom_center.z);
+
+      // Create quaternion from Euler angles
+      Quaternion q =
+          QuaternionFromEuler(active->plane.angles.x, active->plane.angles.y,
+                              active->plane.angles.z);
+
+      // Transform forward vector with quaternion
+      Vector3 forward = {0.0f, -1.0f, 0.0f};
+
+      Vector3 phantom_forward = Vector3RotateByQuaternion(forward, q);
+      // Normalize the vector to ensure it has unit length
+      phantom_forward = Vector3Normalize(phantom_forward);
+
+      // The camera should be positioned opposite to the phantom's forward
+      // direction
+      Vector3 camera_direction = Vector3Negate(phantom_forward);
+
+      LOG_DEBUG("Phantom angles: x=%.2f, y=%.2f, z=%.2f",
+                active->plane.angles.x, active->plane.angles.y,
+                active->plane.angles.z);
+      LOG_DEBUG("Camera direction: x=%.2f, y=%.2f, z=%.2f", camera_direction.x,
+                camera_direction.y, camera_direction.z);
+
+      // Position camera at a fixed distance from phantom center
+      float distance = 10.0f;
+
+      // Calculate camera position based on the direction opposite to phantom's
+      // forward
+      Vector3 camera_pos =
+          Vector3Add(phantom_center, Vector3Scale(camera_direction, distance));
+
+      // Set camera position and target
+      camera->camera.position = camera_pos;
+      camera->camera.target = phantom_center;
+
+      LOG_DEBUG("Camera position: x=%.2f, y=%.2f, z=%.2f", camera_pos.x,
+                camera_pos.y, camera_pos.z);
+      camera->camera.projection = CAMERA_ORTHOGRAPHIC;
+
+      // Ensure the camera's up vector is correct
+      camera->camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+
+      LOG_INFO("Camera positioned to face phantom front in edit mode");
+    }
+
+    camera->is_enabled = true; // Keep camera enabled for mouse wheel
+    camera->is_movable = false;
+    camera->is_mouse_enabled = false; // Disable mouse look but keep wheel
+    break;
+
+  case PEVI_MODE_COMMAND:
+    camera->is_enabled = false;
+    camera->is_movable = false;
+    break;
+
+  default:
+    // Keep current settings for other modes
+    break;
   }
 }
 

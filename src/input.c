@@ -161,27 +161,14 @@ bool input_check_mode_switch(Pevi_t *pevi, InputEvent_t *event, Camera_t *camera
       camera_set_mode(camera, PEVI_MODE_COMMAND);
       return true;
     }
-    else if (key == 'v') {
-      LOG_INFO("Switching to 2D view");
-      // Call the view_2d function directly
-      extern void view_2d(void *arg);
-      view_2d(NULL);
-      return true;
-    }
-    else if (key == 'V') {
-      LOG_INFO("Switching to 3D view");
-      // Call the view_3d function directly
-      extern void view_3d(void *arg);
-      view_3d(NULL);
-      return true;
-    }
+
   } 
   else if (pevi->mode != PEVI_MODE_FREE) {
     // From any non-free mode, ESC returns to free mode
     if (IsKeyPressed(KEY_ESCAPE)) {
       LOG_INFO("Returning to Free mode");
-      pevi->mode = PEVI_MODE_FREE;
       camera_set_mode(camera, PEVI_MODE_FREE);
+      pevi->mode = PEVI_MODE_FREE;
       return true;
     }
   }
