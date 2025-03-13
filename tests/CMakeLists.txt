@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Add test executable
-add_executable(memory_test memory_test.c)
+add_executable(memory_test memory_test.c ../src/memory.c ../src/logger.c ../src/error.c)
 
 # Link with necessary libraries
 target_link_libraries(memory_test
