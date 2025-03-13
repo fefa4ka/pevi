@@ -29,3 +29,12 @@ add_pevi_test(memory_test
     ${CMAKE_SOURCE_DIR}/src/logger.c 
     ${CMAKE_SOURCE_DIR}/src/error.c
 )
+
+# Add buffer test
+add_pevi_test(buffer_test
+    buffer_test.c
+    ${CMAKE_SOURCE_DIR}/src/buffer.c
+    ${CMAKE_SOURCE_DIR}/src/memory.c
+    ${CMAKE_SOURCE_DIR}/src/logger.c
+    ${CMAKE_SOURCE_DIR}/src/error.c
+)
