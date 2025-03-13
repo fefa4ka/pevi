@@ -1,20 +1,31 @@
 cmake_minimum_required(VERSION 3.10)
 
-# Add test executable
-add_executable(memory_test memory_test.c ../src/memory.c ../src/logger.c ../src/error.c)
+# Function to add a test with dependencies
+function(add_pevi_test TEST_NAME TEST_SOURCE)
+    # Create the test executable
+    add_executable(${TEST_NAME} ${TEST_SOURCE} ${ARGN})
+    
+    # Link with necessary libraries
+    target_link_libraries(${TEST_NAME}
+        PRIVATE
+        raylib
+        lr
+    )
+    
+    # Include directories
+    target_include_directories(${TEST_NAME}
+        PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+    )
+    
+    # Add test to CTest
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+endfunction()
 
-# Link with necessary libraries
-target_link_libraries(memory_test
-    PRIVATE
-    raylib
-    lr
+# Add memory test
+add_pevi_test(memory_test 
+    memory_test.c 
+    ${CMAKE_SOURCE_DIR}/src/memory.c 
+    ${CMAKE_SOURCE_DIR}/src/logger.c 
+    ${CMAKE_SOURCE_DIR}/src/error.c
 )
-
-# Include directories
-target_include_directories(memory_test
-    PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-)
-
-# Add test to CTest
-add_test(NAME MemoryTest COMMAND memory_test)
