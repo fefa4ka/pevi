@@ -1,6 +1,4 @@
 #include "window.h"
-#include "core.h"
-#include "font.h"
 #include "error.h"
 #include "logger.h"
 

@@ -1,4 +1,3 @@
-#include "buffer.h"
 #include "camera.h"
 #include "command.h"
 #include "config.h"
@@ -7,13 +6,10 @@
 #include "font.h"
 #include "input.h"
 #include "logger.h"
-#include "lr.h"
-#include "lr_file.h"
 #include "memory.h"
 #include "phantom_list.h"
 #include "raylib.h"
 #include "render.h"
-#include "text.h"
 #include "window.h"
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,10 +1,8 @@
 #include "camera.h"
-#include "error.h"
 #include "logger.h"
 #include "phantom.h"
 #include "phantom_list.h"
 #include <raymath.h>
-#include <stdio.h>
 
 void camera_handle(Camera_t *settings) {
   Camera3D *camera = &settings->camera;

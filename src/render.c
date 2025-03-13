@@ -1,5 +1,4 @@
 #include "render.h"
-#include "text.h"
 #include "error.h"
 #include "phantom.h"
 #include <string.h>

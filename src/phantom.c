@@ -2,7 +2,6 @@
 #include "error.h"
 #include "helpers.h"
 #include "logger.h"
-#include "lr_file.h"
 #include "memory.h"
 #include "phantom_list.h"
 #include "stdlib.h"
@@ -393,12 +392,6 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
   FontSettings_t settings = phantom->font;
   Font font = settings.font.face;
   float scale = settings.font_size / (float)font.baseSize;
-
-  // Update line_to to show all lines in the buffer
-  /*size_t line_count = lr_owner_count(&phantom->buffer->lr);*/
-  /*if (line_count > phantom->line_to) {*/
-  /*  phantom->line_to = line_count;*/
-  /*}*/
 
   // Measure the phantom's dimensions.
   Vector4 size = phantom_measure(phantom);

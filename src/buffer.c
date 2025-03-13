@@ -1,5 +1,4 @@
 #include "buffer.h"
-#include "config.h"
 #include "error.h"
 #include "logger.h"
 #include "memory.h"
