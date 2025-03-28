@@ -6,6 +6,7 @@
 #include "phantom_list.h"
 #include "stdlib.h"
 #include "text.h"
+#include "color_utils.h"
 
 // For tracking the initial click offset during drag operations
 static struct {
