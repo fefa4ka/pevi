@@ -25,6 +25,7 @@ typedef struct {
   Plane plane;
 
   FontSettings_t font;
+  Color color;  // Color for the phantom
 
   Cursor_t cursor;
   bool is_selected;

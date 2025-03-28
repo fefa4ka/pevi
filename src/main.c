@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "color_utils.h"
 #include "command.h"
 #include "config.h"
 #include "core.h"
@@ -13,6 +14,7 @@
 #include "window.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 Window_t window = {WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, FPS_TARGET};
 
@@ -217,6 +219,10 @@ int main(void) {
   // Initialize error handling
   error_init();
   LOG_DEBUG("Error handling initialized");
+  
+  // Seed random number generator for color generation
+  srand((unsigned int)time(NULL));
+  LOG_DEBUG("Random number generator seeded");
   
   // Open window
   LOG_INFO("Opening window");

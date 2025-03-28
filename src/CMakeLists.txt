@@ -6,4 +6,5 @@ target_link_libraries(editor
     raylib
     ${LR_LIB}
     ${LR_TEXT_LIB}
+    m  # Add math library for color calculations
 )

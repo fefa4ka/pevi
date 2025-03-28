@@ -52,10 +52,21 @@ static void phantom_draw_background(const Vector4 *size, const Vector3 *size_3d,
   BoundingBox phantom_box = {{0, 0, 0}, *size_3d};
   bool phantom_hovered =
       object_is_hovered(camera, phantom_box, &phantom->plane);
-  if (phantom_hovered || phantom->is_selected) {
-    Vector3 center = {size->x / 2, -0.15f, size->z / 2};
-    DrawCubeV(center, *size_3d, BLUE);
+  
+  // Always draw the phantom background with its color, but with lower alpha if not hovered/selected
+  Vector3 center = {size->x / 2, -0.15f, size->z / 2};
+  
+  Color bg_color = phantom->color;
+  
+  // Make the color more transparent if not hovered or selected
+  if (!phantom_hovered && !phantom->is_selected) {
+    bg_color.a = 100; // Lower alpha for non-hovered/non-selected phantoms
+  } else {
+    bg_color.a = 200; // Higher alpha for hovered/selected phantoms
   }
+  
+  DrawCubeV(center, *size_3d, bg_color);
+  
   phantom->is_hovered = phantom_hovered;
 }
 
@@ -534,6 +545,7 @@ Phantom_t *phantom_create(void) {
   phantom->line_to = 1;
   phantom->plane = (Plane){0};
   phantom->font = (FontSettings_t){0};
+  phantom->color = color_random_pastel(); // Set a random pastel color
   phantom->cursor = (Cursor_t){0};
   phantom->is_selected = false;
   phantom->is_hovered = false;
