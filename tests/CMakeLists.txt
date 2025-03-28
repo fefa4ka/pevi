@@ -31,3 +31,19 @@ add_pevi_test(memory_test
     ${CMAKE_SOURCE_DIR}/src/error.c
 )
 
+# Add phantom management test
+add_pevi_test(phantom_test
+    phantom_test.c
+    ${CMAKE_SOURCE_DIR}/src/phantom_list.c
+    ${CMAKE_SOURCE_DIR}/src/phantom.c
+    ${CMAKE_SOURCE_DIR}/src/buffer.c
+    ${CMAKE_SOURCE_DIR}/src/memory.c
+    ${CMAKE_SOURCE_DIR}/src/logger.c
+    ${CMAKE_SOURCE_DIR}/src/error.c
+    ${CMAKE_SOURCE_DIR}/src/font.c
+    ${CMAKE_SOURCE_DIR}/src/helpers.c
+    ${CMAKE_SOURCE_DIR}/src/input.c
+    ${CMAKE_SOURCE_DIR}/src/symbol.c
+    ${CMAKE_SOURCE_DIR}/src/text.c
+)
+
