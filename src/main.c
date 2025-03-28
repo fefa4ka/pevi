@@ -47,6 +47,19 @@ void prev_phantom(void *arg) {
   }
 }
 
+void remove_phantom(void *arg) {
+  if (pevi.phantoms) {
+    Phantom_t *active = phantom_list_get_active(pevi.phantoms);
+    if (active) {
+      int id = active->id;
+      LOG_INFO("Removing active phantom with ID %d", id);
+      phantom_list_remove_by_id(pevi.phantoms, id);
+    } else {
+      LOG_WARNING("No active phantom to remove");
+    }
+  }
+}
+
 void new_phantom(void *arg) {
   if (pevi.phantoms) {
     PhantomNode_t *node = phantom_list_create_phantom(pevi.phantoms, "test.txt");
@@ -97,6 +110,7 @@ Command_t commands[] = {
     {"q", quit, &pevi.command_buffer},
     {"n", next_phantom, NULL},
     {"p", prev_phantom, NULL},
+    {"d", remove_phantom, NULL},  // 'd' command for deleting active phantom
     {"new", new_phantom, NULL},
     {"e", open_file, NULL},  // 'e' command for opening files
     {0} // End marker
