@@ -26,7 +26,7 @@ bool window_open(Window_t *window) {
   }
   
   LOG_DEBUG("Toggling fullscreen");
-  ToggleFullscreen();
+  /*ToggleFullscreen();*/
   
   LOG_DEBUG("Toggling borderless windowed mode");
   ToggleBorderlessWindowed();

@@ -2,10 +2,19 @@
 #include "buffer.h"
 #include "logger.h"
 #include "memory.h"
+#include "pevi.h"
 #include "error.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+
+
+Pevi_t pevi = {PEVI_MODE_FREE, true};
+
+Command_t commands[] = {
+    {0} // End marker
+};
+
 
 // Helper function to create a test file
 static bool create_test_file(const char *filename, const char *content) {

@@ -1,6 +1,7 @@
 #include "memory.h"
 #include "logger.h"
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 // Simple test for memory tracking functionality

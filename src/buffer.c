@@ -2,7 +2,7 @@
 #include "error.h"
 #include "logger.h"
 #include "memory.h"
-#include <lr_file.h>
+#include <lr_text.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -89,7 +89,7 @@ Buffer_t *buffer_open(void *filename) {
   LOG_DEBUG("Duplicated filename: %s", buffer->path);
 
   LOG_DEBUG("Opening file in linked ring: %s", buffer->path);
-  lr_result_t result = lr_file_open(&buffer->lr, buffer->path, 0);
+  lr_result_t result = lr_text_open(&buffer->lr, buffer->path, 0);
   if (result != LR_SUCCESS) {
     LOG_ERROR("Failed to open file in linked ring: %s (result code %d)", buffer->path, result);
     ERROR_SET(ERROR_FILE_ACCESS, ERROR_ERROR, "Failed to open file in linked ring");
@@ -119,7 +119,7 @@ bool buffer_save(Buffer_t *buffer, char *filename) {
   }
   
   LOG_INFO("Saving buffer to file: %s", path);
-  lr_result_t result = lr_file_save(&buffer->lr, path);
+  lr_result_t result = lr_text_save(&buffer->lr, path);
   if (result != LR_SUCCESS) {
     LOG_ERROR("Failed to save buffer to file: %s (result code %d)", path, result);
     ERROR_SET(ERROR_FILE_ACCESS, ERROR_ERROR, "Failed to save buffer to file");
