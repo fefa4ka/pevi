@@ -82,12 +82,6 @@ void open_file(void *arg) {
   node->phantom->font.font = font_default;
   node->phantom->plane = camera_plane(&camera.camera);
   
-  // Position the new phantom to the right of the active one
-  Phantom_t *active = phantom_list_get_active(pevi.phantoms);
-  if (active) {
-    node->phantom->plane.pos.x = active->plane.pos.x + 5.0f;
-  }
-  
   // Make the new phantom active
   phantom_list_set_active(pevi.phantoms, node);
   LOG_INFO("Opened file as phantom: %s", filename);
@@ -114,7 +108,7 @@ void phantom_test(Pevi_t *pevi) {
     phantom_list_draw_all(pevi->phantoms, &camera, &event);
   }
   
-  DrawGrid(100, 1.0f);
+  /*DrawGrid(100, 1.0f);*/
 }
 
 
@@ -150,7 +144,7 @@ void render(Camera_t *camera, render_body_fn Render3DBody,
 bool resource_load() {
   bool success = true;
   
-  // Try to load font, fallback to default if not found
+  // Try to load font, fallback to defult if not found
   font_default = font_load("assets/fonts/FiraCode-Regular.ttf", "assets/shaders/sdf.fs");
 
   // If font loading failed, use a default font
@@ -250,6 +244,8 @@ int main(void) {
     LOG_WARNING("Using default resources due to loading failure");
     // Continue with default resources
   }
+
+  camera_set_mode(&camera, PEVI_MODE_FREE);
 
   // Main render loop
   LOG_INFO("Entering main render loop");
