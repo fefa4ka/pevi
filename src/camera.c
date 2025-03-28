@@ -84,7 +84,7 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
 
     camera->is_enabled = true;
     camera->is_movable = true;
-    camera->is_mouse_enabled = true;
+    camera->is_mouse_enabled = false;
     break;
 
   case PEVI_MODE_EDIT:
@@ -134,7 +134,7 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
                 camera_direction.y, camera_direction.z);
 
       // Position camera at a fixed distance from phantom center
-      float distance = 10.0f;
+      float distance = 30.0f;
 
       // Calculate camera position based on the direction opposite to phantom's
       // forward
@@ -147,7 +147,7 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
 
       LOG_DEBUG("Camera position: x=%.2f, y=%.2f, z=%.2f", camera_pos.x,
                 camera_pos.y, camera_pos.z);
-      camera->camera.projection = CAMERA_ORTHOGRAPHIC;
+      camera->camera.projection = CAMERA_PERSPECTIVE;
 
       // Ensure the camera's up vector is correct
       camera->camera.up = (Vector3){0.0f, 1.0f, 0.0f};
@@ -157,7 +157,7 @@ void camera_set_mode(Camera_t *camera, enum pevi_mode editor_mode) {
 
     camera->is_enabled = true; // Keep camera enabled for mouse wheel
     camera->is_movable = false;
-    camera->is_mouse_enabled = false; // Disable mouse look but keep wheel
+    camera->is_mouse_enabled = true; // Disable mouse look but keep wheel
     break;
 
   case PEVI_MODE_COMMAND:
