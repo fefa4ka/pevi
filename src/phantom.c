@@ -146,8 +146,11 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
           }
         }
       }
-      // Draw cursor
-      if (phantom->cursor.needle && phantom->cursor.needle == needle) {
+      // Draw cursor only if this phantom is active
+      extern Pevi_t pevi;
+      Phantom_t *active_phantom = pevi.phantoms ? phantom_list_get_active(pevi.phantoms) : NULL;
+      if (phantom->cursor.needle && phantom->cursor.needle == needle && 
+          phantom == active_phantom) {
         Vector3 cursor_size = glyph.size;
         cursor_size.y = 0;
         DrawCubeV(
