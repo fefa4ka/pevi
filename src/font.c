@@ -38,7 +38,7 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
         Image atlas = {0};
         
         // Use a try-catch block to handle potential assertion failures
-        SetTraceLogLevel(LOG_NONE); // Temporarily disable raylib logging
+        SetTraceLogLevel(LOG_DEBUG); // Temporarily disable raylib logging
         atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, 0, 1);
         SetTraceLogLevel(LOG_DEBUG); // Restore logging
         
