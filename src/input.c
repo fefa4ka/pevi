@@ -70,7 +70,7 @@ bool input_process(Pevi_t *pevi, Camera_t *camera, InputHandler_t *handler) {
   if (input_check_empty_space_click(pevi, &handler->current_event)) {
     return true; // Empty space click handled
   }
-  
+
   // Check for mode switching next
   if (input_check_mode_switch(pevi, &handler->current_event, camera)) {
     return true; // Mode switch occurred, don't process further
@@ -157,14 +157,15 @@ void input_handle_command_mode(Pevi_t *pevi, InputEvent_t *event) {
 // Check if mouse clicked in empty space
 static bool input_check_empty_space_click(Pevi_t *pevi, InputEvent_t *event) {
   // Only process in FREE mode when left mouse button is clicked
-  if (pevi->mode != PEVI_MODE_FREE || !IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+  if (pevi->mode != PEVI_MODE_FREE ||
+      !IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     return false;
   }
-  
+
   // If the event has no source type, it means the click was in empty space
   if (event->source_type == INPUT_SOURCE_NONE) {
     LOG_DEBUG("Click detected in empty space");
-    
+
     // Unselect the active phantom if there is one
     if (pevi->phantoms) {
       Phantom_t *active = phantom_list_get_active(pevi->phantoms);
@@ -173,10 +174,10 @@ static bool input_check_empty_space_click(Pevi_t *pevi, InputEvent_t *event) {
         LOG_DEBUG("Unselected active phantom with ID %d", active->id);
       }
     }
-    
+
     return true;
   }
-  
+
   return false;
 }
 
@@ -186,12 +187,21 @@ bool input_check_mode_switch(Pevi_t *pevi, InputEvent_t *event,
   // Check for mode switching based on current mode
   if (pevi->mode == PEVI_MODE_FREE) {
     int key = GetCharPressed();
-    if (key == 'e') {
+    if (key == 'i' || key == 'I') {
       // Only switch to edit mode if there's an active phantom
       Phantom_t *active = phantom_list_get_active(pevi->phantoms);
       if (active) {
         LOG_INFO("Switching to Edit mode");
         pevi->mode = PEVI_MODE_EDIT;
+        if (key == 'I') {
+          LOG_DEBUG("Cursor position: %lu.%lu", active->cursor.line_no,
+                    active->cursor.pos);
+          if (active->cursor.pos > 0) {
+            active->cursor.pos -= 1;
+          }
+          LOG_DEBUG("Cursor position: %lu.%lu", active->cursor.line_no,
+                    active->cursor.pos);
+        }
         camera_set_mode(camera, PEVI_MODE_EDIT);
         return true;
       } else {
@@ -241,7 +251,19 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
       int key = event->key_code;
       lr_result_t result;
 
-      if (phantom->cursor.pos == 1) {
+      if (phantom->cursor.pos == 0) {
+        // TODO: Why lr_put and lr_push do the same thing here?
+        result =
+            lr_insert(&phantom->buffer->lr, key, phantom->cursor.line_no, 0);
+        if (result != LR_SUCCESS) {
+          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                    "Failed to append character at end of line");
+          return;
+        }
+        phantom->cursor.needle =
+            lr_owner_head(&phantom->buffer->lr, phantom->cursor.owner)->next;
+        phantom->cursor.pos++;
+      } else if (phantom->cursor.pos == 1) {
         result = lr_insert(&phantom->buffer->lr, key, phantom->cursor.line_no,
                            phantom->cursor.pos);
         if (result != LR_SUCCESS) {
@@ -275,7 +297,8 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
       if (event->key_code == KEY_BACKSPACE) {
         lr_result_t result;
 
-        if (phantom->cursor.pos > 1) { // Only delete if not at beginning of line
+        if (phantom->cursor.pos >
+            0) { // Only delete if not at beginning of line
           if (phantom->cursor.is_eof) {
             result = lr_pop(&phantom->buffer->lr, &phantom->cursor.needle->data,
                             phantom->cursor.line_no);
@@ -287,19 +310,37 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
             phantom->cursor.pos--;
             phantom->cursor.needle = lr_owner_tail(phantom->cursor.owner);
           } else {
-            // Get the previous needle before deleting
-            struct lr_cell *prev_needle = phantom->cursor.needle->prev;
-            
-            result = lr_pull(&phantom->buffer->lr, &phantom->cursor.needle->data,
-                             phantom->cursor.line_no, phantom->cursor.pos);
+            result =
+                lr_pull(&phantom->buffer->lr, &phantom->cursor.needle->data,
+                        phantom->cursor.line_no, phantom->cursor.pos);
             if (result != LR_SUCCESS) {
               ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
                         "Failed to delete character in middle of line");
               return;
             }
             phantom->cursor.pos--;
-            phantom->cursor.needle = prev_needle;
+            phantom->cursor.needle = NULL;
           }
+        } else if (phantom->cursor.pos == 0) {
+          if (phantom->cursor.line_no == 1) {
+            LOG_DEBUG("Can't merge first line");
+            // Can't merge first line
+            return;
+          }
+          size_t line_prev_length =
+              lr_count_owned(&phantom->buffer->lr, phantom->cursor.line_no - 1);
+          result = lr_text_line_merge(&phantom->buffer->lr,
+                                      phantom->cursor.line_no - 1,
+                                      phantom->cursor.line_no);
+
+          if (result != LR_SUCCESS) {
+            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                      "Failed to merge lines");
+            return;
+          }
+
+          phantom->cursor.line_no--;
+          phantom->cursor.pos = line_prev_length;
         }
         LOG_DEBUG("Cursor: %lu.%lu", phantom->cursor.line_no,
                   phantom->cursor.pos);
@@ -315,7 +356,7 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
 
         // Move cursor to the beginning of the new line
         phantom->cursor.line_no++;
-        phantom->cursor.pos = 1;
+        phantom->cursor.pos = 0;
 
         // Update cursor needle to point to the beginning of the new line
         phantom->cursor.owner = lr_owner_find(

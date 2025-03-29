@@ -130,6 +130,7 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
             // Check if we have a complete UTF-8 character
             int bytes = 0;
             codepoint = GetCodepoint(utf8_buffer, &bytes);
+	    LOG_DEBUG("Codepoint U+%04X for utf8_buffer: %s", codepoint, utf8_buffer);
 
             // If we have a complete character or reached the buffer limit
             if (bytes == utf8_pos || utf8_pos >= 4) {
@@ -145,7 +146,7 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
                 int glyph_index = GetGlyphIndex(*font, codepoint);
                 // If glyph not found, try to use a fallback character
                 if (glyph_index < 0 || glyph_index >= font->glyphCount) {
-                    LOG_TRACE("Glyph not found for codepoint U+%04X, using fallback", codepoint);
+                    LOG_DEBUG("Glyph not found for codepoint U+%04X, using fallback", codepoint);
                     glyph_index = GetGlyphIndex(*font, '?'); // Use question mark as fallback
                     if (glyph_index < 0) {
                         glyph_index = 0; // Last resort fallback
