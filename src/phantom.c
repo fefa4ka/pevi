@@ -143,7 +143,16 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
 
                 // Draw the glyph for the complete character
                 int glyph_index = GetGlyphIndex(*font, codepoint);
-                if (glyph_index >= 0) {
+                // If glyph not found, try to use a fallback character
+                if (glyph_index < 0 || glyph_index >= font->glyphCount) {
+                    LOG_TRACE("Glyph not found for codepoint U+%04X, using fallback", codepoint);
+                    glyph_index = GetGlyphIndex(*font, '?'); // Use question mark as fallback
+                    if (glyph_index < 0) {
+                        glyph_index = 0; // Last resort fallback
+                    }
+                }
+                    
+                if (glyph_index >= 0 && glyph_index < font->glyphCount) {
                     // Create a glyph structure
                     Glyph_t glyph;
                     glyph.font = (Font*)font;
@@ -564,7 +573,14 @@ phantom_line_measure_get(const Buffer_t *buffer, size_t line_no,
         // If we have a complete character or reached the buffer limit
         if (bytes == utf8_pos || utf8_pos >= 4) {
             measure.char_count++;
-            measure.width += font_glyph_advance_scaled_get(face, codepoint, scale, font_base_size);
+            // Check if the codepoint exists in the font
+            int glyph_index = GetGlyphIndex(*face, codepoint);
+            if (glyph_index >= 0 && glyph_index < face->glyphCount) {
+                measure.width += font_glyph_advance_scaled_get(face, codepoint, scale, font_base_size);
+            } else {
+                // Use a default width for missing glyphs
+                measure.width += (face->baseSize * 0.5f) * scale / font_base_size;
+            }
 
             // Reset UTF-8 buffer for next character
             utf8_pos = 0;

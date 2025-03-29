@@ -19,41 +19,58 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
       LOG_DEBUG("Loaded font file data: %d bytes", fileSize);
       
       // SDF font generation from TTF font
-      font.baseSize = 32;
-      font.glyphCount = 512; // Reduced from 4096 to avoid rect packing issues
+      font.baseSize = 64; // Increased base size to accommodate larger characters
+      font.glyphCount = 256; // Reduced from 512 to avoid rect packing issues
       LOG_DEBUG("Generating SDF font with base size %d, glyph count %d", font.baseSize, font.glyphCount);
       
-      // Parameters > font size: 16, no glyphs array provided (0), glyphs count: 0
+      // Parameters > font size: font.baseSize, no glyphs array provided (0), glyphs count: 0
       // (defaults to 95)
       font.glyphs = LoadFontData(fileData, fileSize, font.baseSize, 0, 0, FONT_SDF);
       
       if (font.glyphs != NULL) {
         LOG_DEBUG("Font data loaded successfully");
         
-        // Parameters > glyphs count: font.glyphCount, font size: font.baseSize, glyphs padding in image: 0
+        // Parameters > glyphs count: font.glyphCount, font size: font.baseSize, glyphs padding: 4
         // px, pack method: 1 (Skyline algorithm)
         LOG_DEBUG("Generating font atlas");
         
         // Try with a reasonable atlas size first
         Image atlas = {0};
         
-        // Use a try-catch block to handle potential assertion failures
-        SetTraceLogLevel(LOG_DEBUG); // Temporarily disable raylib logging
-        atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, 0, 1);
-        SetTraceLogLevel(LOG_DEBUG); // Restore logging
+        // Temporarily disable raylib logging to avoid warnings
+        int prevLogLevel = GetTraceLogLevel();
+        SetTraceLogLevel(LOG_NONE);
         
-        // If atlas generation failed, try with fewer glyphs
-        if (atlas.data == NULL) {
+        // Try with increasing atlas padding until successful
+        int padding = 4;
+        bool success = false;
+        
+        // First try with requested glyph count
+        atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, padding, 1);
+        if (atlas.data != NULL) {
+            success = true;
+        }
+        
+        // If failed, try with fewer glyphs
+        if (!success) {
             LOG_WARNING("Failed to generate font atlas with %d glyphs, trying with fewer", font.glyphCount);
-            font.glyphCount = 256; // Fallback to basic multilingual plane
-            atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, 0, 1);
+            font.glyphCount = 128; // Fallback to ASCII extended
+            atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, padding, 1);
             
-            if (atlas.data == NULL) {
-                LOG_WARNING("Still failed, falling back to ASCII only (95 glyphs)");
-                font.glyphCount = 95; // Fallback to ASCII only
-                atlas = GenImageFontAtlas(font.glyphs, &font.recs, 95, font.baseSize, 0, 1);
+            if (atlas.data != NULL) {
+                success = true;
             }
         }
+        
+        // Last resort: try with basic ASCII only
+        if (!success) {
+            LOG_WARNING("Still failed, falling back to ASCII only (95 glyphs)");
+            font.glyphCount = 95; // Fallback to ASCII only
+            atlas = GenImageFontAtlas(font.glyphs, &font.recs, 95, font.baseSize, padding, 1);
+        }
+        
+        // Restore previous log level
+        SetTraceLogLevel(prevLogLevel);
         
         if (atlas.data != NULL) {
           LOG_DEBUG("Font atlas generated successfully: %dx%d", atlas.width, atlas.height);
@@ -109,6 +126,13 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
 // Returns the raw glyph advance for the given codepoint.
 float font_glyph_advance_get(const Font *font, int codepoint) {
   int glyph_index = GetGlyphIndex(*font, codepoint);
+  
+  // Check if the glyph index is valid
+  if (glyph_index < 0 || glyph_index >= font->glyphCount) {
+    // Return a default advance for missing glyphs
+    return font->baseSize * 0.5f;
+  }
+  
   if (font->glyphs[glyph_index].advanceX != 0)
     return font->glyphs[glyph_index].advanceX;
   else
