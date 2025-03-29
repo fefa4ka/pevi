@@ -198,7 +198,26 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
                     // Draw cursor if at this position
                     if (phantom->cursor.line_no == line_no && phantom->cursor.pos == line_pos) {
                         // Draw cursor
-                        DrawCube((Vector3){pos.x, 0, pos.z + glyph.size.z/2}, 0.05f, 0.05f, glyph.size.z, RED);
+                        extern Pevi_t pevi;
+                        if (pevi.mode == PEVI_MODE_EDIT) {
+                          // Draw a thin vertical line at the cursor position instead of
+                          // highlighting the whole symbol
+                          Vector3 cursor_size = {0.05f, 0.1f,
+                                                 glyph.size.z}; // Thin vertical line
+                          float cursor_pos_x = pos.x + glyph.size.x;
+                          if (phantom->cursor.pos == 0) {
+                            cursor_pos_x = pos.x;
+                          }
+
+                          DrawCubeV((Vector3){cursor_pos_x, 0, pos.z + glyph.size.z / 2},
+                                    cursor_size, RED);
+                        } else {
+                          Vector3 cursor_size = glyph.size;
+                          cursor_size.y = 0;
+                          DrawCubeV((Vector3){pos.x + glyph.size.x / 2, 0,
+                                              pos.z + glyph.size.z / 2},
+                                    cursor_size, RED);
+                        }
                     }
 
                     // Draw the symbol
@@ -628,6 +647,9 @@ Phantom_t *phantom_create(void) {
   phantom->cursor = (Cursor_t){0};
   phantom->is_selected = false;
   phantom->is_hovered = false;
+  phantom->hover_char_start = NULL;
+  phantom->hover_char_end = NULL;
+  phantom->hover_char_pos = 0;
   phantom->hover_char_start = NULL;
   phantom->hover_char_end = NULL;
   phantom->hover_char_pos = 0;
