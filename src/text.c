@@ -53,14 +53,31 @@ static bool text_glyphs_draw(const char *content, Font *font, float font_size,
       BoundingBox symbol_box = {pos, Vector3Add(pos, glyph.size)};
       if (object_is_hovered(camera, symbol_box, plane)) {
         symbol_is_hovered = true;
-        symbol_interaction_handle(content[index], pos, glyph.size, event);
         
-        // If a symbol is clicked, set the containing phantom as active
-        if (event->source_type == INPUT_SOURCE_SYMBOL && 
-            event->mouse == INPUT_MOUSE_CLICK) {
-          // The phantom will be set as active in the phantom_draw function
-          // by storing the event information
-          event->source = plane; // Store the plane to identify the phantom
+        // Enable depth test temporarily to ensure proper rendering of hover effect
+        rlDisableDepthTest();
+        DrawCubeWiresV(
+            (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
+            glyph.size, RED);
+        rlEnableDepthTest();
+        
+        // Handle interaction
+        event->source_type = INPUT_SOURCE_SYMBOL;
+        
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+          event->mouse = INPUT_MOUSE_CLICK;
+          LOG_DEBUG("CLICK symbol %c", content[index]);
+          
+          // If a symbol is clicked, set the containing phantom as active
+          if (event->mouse == INPUT_MOUSE_CLICK) {
+            // The phantom will be set as active in the phantom_draw function
+            // by storing the event information
+            event->source = plane; // Store the plane to identify the phantom
+          }
+        } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+          event->mouse = INPUT_MOUSE_DRAG;
+        } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+          event->mouse = INPUT_MOUSE_RELEASE;
         }
       }
     }

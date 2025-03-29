@@ -132,16 +132,17 @@ void symbol_interaction_handle(char symbol, Vector3 pos, Vector3 glyph_size,
   DrawCubeWiresV(
       (Vector3){pos.x + glyph_size.x / 2, 0, pos.z + glyph_size.z / 2},
       cursor_size, RED);
+  rlEnableDepthTest();
 
   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     event->mouse = INPUT_MOUSE_CLICK;
-    /*LOG_DEBUG("CLICK %c", symbol);*/
+    LOG_DEBUG("CLICK symbol %c", symbol);
   } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     event->mouse = INPUT_MOUSE_DRAG;
-    /*LOG_DEBUG("DRAG %c", symbol);*/
+    LOG_DEBUG("DRAG symbol %c", symbol);
   } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
     event->mouse = INPUT_MOUSE_RELEASE;
-    /*LOG_DEBUG("RELEASE %c", symbol);*/
+    LOG_DEBUG("RELEASE symbol %c", symbol);
   }
 }
 
