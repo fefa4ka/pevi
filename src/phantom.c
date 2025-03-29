@@ -115,36 +115,45 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
       // Draw the glyph.
       Glyph_t glyph = symbol_glyph(ch, font, font_size);
       if (phantom->is_hovered) {
-				LOG_DEBUG("Phantom is hovered");
         BoundingBox symbol_box = {pos, Vector3Add(pos, glyph.size)};
         if (object_is_hovered(camera, symbol_box, plane)) {
-					LOG_DEBUG("Symbol is hovered");
           symbol_is_hovered = true;
-          if (event->source_type == INPUT_SOURCE_NONE) {
-            symbol_interaction_handle(ch, pos, glyph.size, event);
-            if (event->source_type == INPUT_SOURCE_SYMBOL) {
-              if (event->mouse == INPUT_MOUSE_CLICK) {
-                phantom->cursor.owner = line;
-                phantom->cursor.needle = needle;
-                phantom->cursor.line_no = line_no;
-                phantom->cursor.pos = line_pos;
-                if (needle == cell_tail) {
-                  phantom->cursor.is_eof = true;
-                } else {
-                  phantom->cursor.is_eof = false;
-                }
-                LOG_DEBUG("Cursor: %lu.%lu", line_no, line_pos);
-
-                // Set this phantom as active when a symbol is clicked
-                extern Pevi_t pevi;
-                if (pevi.phantoms) {
-                  phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
-                  LOG_DEBUG(
-                      "Set phantom with ID %d as active due to symbol click",
-                      phantom->id);
-                }
-              }
+          
+          // Draw hover effect
+          rlDisableDepthTest();
+          DrawCubeWiresV(
+              (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
+              glyph.size, RED);
+          rlEnableDepthTest();
+          
+          // Handle interaction
+          event->source_type = INPUT_SOURCE_SYMBOL;
+          
+          if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            event->mouse = INPUT_MOUSE_CLICK;
+            LOG_DEBUG("CLICK symbol %c at line %lu pos %lu", ch, line_no, line_pos);
+            
+            // Update cursor position
+            phantom->cursor.owner = line;
+            phantom->cursor.needle = needle;
+            phantom->cursor.line_no = line_no;
+            phantom->cursor.pos = line_pos;
+            if (needle == cell_tail) {
+              phantom->cursor.is_eof = true;
+            } else {
+              phantom->cursor.is_eof = false;
             }
+            
+            // Set this phantom as active when a symbol is clicked
+            extern Pevi_t pevi;
+            if (pevi.phantoms) {
+              phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
+              LOG_DEBUG("Set phantom with ID %d as active due to symbol click", phantom->id);
+            }
+          } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            event->mouse = INPUT_MOUSE_DRAG;
+          } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            event->mouse = INPUT_MOUSE_RELEASE;
           }
         }
       }
