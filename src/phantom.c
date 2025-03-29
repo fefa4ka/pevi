@@ -54,16 +54,22 @@ static void phantom_draw_background(const Vector4 *size, const Vector3 *size_3d,
   bool phantom_hovered =
       object_is_hovered(camera, phantom_box, &phantom->plane);
   
-  // Always draw the phantom background with its color, but with lower alpha if not hovered/selected
+  // Always draw the phantom background with its color, but with different saturation if hovered/selected
   Vector3 center = {size->x / 2, -0.15f, size->z / 2};
   
   Color bg_color = phantom->color;
   
-  // Make the color more transparent if not hovered or selected
+  // Adjust saturation based on hover/selection state
   if (!phantom_hovered && !phantom->is_selected) {
-    bg_color.a = 100; // Lower alpha for non-hovered/non-selected phantoms
+    // Convert to HSV, reduce saturation, convert back to RGB
+    Vector3 hsv = ColorToHSV(bg_color);
+    hsv.y *= 0.7f; // Reduce saturation for non-hovered/non-selected
+    bg_color = ColorFromHSV(hsv.x, hsv.y, hsv.z);
   } else {
-    bg_color.a = 200; // Higher alpha for hovered/selected phantoms
+    // Convert to HSV, increase saturation, convert back to RGB
+    Vector3 hsv = ColorToHSV(bg_color);
+    hsv.y = fminf(hsv.y * 1.3f, 1.0f); // Increase saturation for hovered/selected
+    bg_color = ColorFromHSV(hsv.x, hsv.y, hsv.z);
   }
   
   DrawCubeV(center, *size_3d, bg_color);
