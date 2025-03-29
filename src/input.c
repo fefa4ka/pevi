@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool input_check_empty_space_click(Pevi_t *pevi, InputEvent_t *event);
+
 // Initialize the input handler
 void input_init(InputHandler_t *handler) {
   // Clear the current and previous event structures
