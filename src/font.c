@@ -20,7 +20,7 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
       
       // SDF font generation from TTF font
       font.baseSize = 32;
-      font.glyphCount = 95;
+      font.glyphCount = 4096;
       LOG_DEBUG("Generating SDF font with base size %d, glyph count %d", font.baseSize, font.glyphCount);
       
       // Parameters > font size: 16, no glyphs array provided (0), glyphs count: 0

@@ -30,6 +30,11 @@ typedef struct {
   Cursor_t cursor;
   bool is_selected;
   bool is_hovered;
+
+  // For Unicode character hovering
+  struct lr_cell *hover_char_start;  // Start of hovered character
+  struct lr_cell *hover_char_end;    // End of hovered character
+  size_t hover_char_pos;             // Position of hovered character
 } Phantom_t;
 
 typedef struct {
