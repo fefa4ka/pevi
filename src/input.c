@@ -264,7 +264,8 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
         // 2-byte character
         utf8_buffer[0] = 0xC0 | (key >> 6);
         utf8_buffer[1] = 0x80 | (key & 0x3F);
-	LOG_DEBUG("2-byte character U+%04X for utf8_buffer: %s (len=%d)", key, utf8_buffer, bytes);
+        LOG_DEBUG("2-byte character U+%04X for utf8_buffer: %s (len=%d)", key,
+                  utf8_buffer, bytes);
         bytes = 2;
       } else if (key <= 0xFFFF) {
         // 3-byte character
@@ -285,13 +286,16 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
       for (int i = 0; i < bytes; i++) {
         if (phantom->cursor.pos == 0) {
           result = lr_insert(&phantom->buffer->lr, utf8_buffer[i],
-                             phantom->cursor.line_no, 0);
+                             phantom->cursor.line_no, i);
         } else if (phantom->cursor.is_eof) {
           result = lr_put(&phantom->buffer->lr, utf8_buffer[i],
                           phantom->cursor.line_no);
         } else {
-          result = lr_insert_next(&phantom->buffer->lr, utf8_buffer[i],
-                                  phantom->cursor.needle);
+	struct lr_cell *needle = phantom->cursor.needle;
+				for (int j = 0; j < i; j++) {
+					needle = needle->next;
+			}
+          result = lr_insert_next(&phantom->buffer->lr, utf8_buffer[i], needle);
         }
 
         if (result != LR_SUCCESS) {
@@ -300,14 +304,8 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
           return;
         }
 
-        // Update cursor position for next byte
-        if (i < bytes - 1) {
-          phantom->cursor.needle = phantom->cursor.needle->next;
-        }
-
-        phantom->cursor.pos++;
-        phantom->cursor.needle = phantom->cursor.needle->next;
       }
+      phantom->cursor.pos++;
     } else if (event->key_type == INPUT_KEY_SPECIAL) {
       if (event->key_code == KEY_BACKSPACE) {
         lr_result_t result;
