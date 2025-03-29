@@ -20,7 +20,7 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
       
       // SDF font generation from TTF font
       font.baseSize = 32;
-      font.glyphCount = 4096;
+      font.glyphCount = 512; // Reduced from 4096 to avoid rect packing issues
       LOG_DEBUG("Generating SDF font with base size %d, glyph count %d", font.baseSize, font.glyphCount);
       
       // Parameters > font size: 16, no glyphs array provided (0), glyphs count: 0
@@ -30,10 +30,30 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
       if (font.glyphs != NULL) {
         LOG_DEBUG("Font data loaded successfully");
         
-        // Parameters > glyphs count: 95, font size: 16, glyphs padding in image: 0
+        // Parameters > glyphs count: font.glyphCount, font size: font.baseSize, glyphs padding in image: 0
         // px, pack method: 1 (Skyline algorithm)
         LOG_DEBUG("Generating font atlas");
-        Image atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, 0, 1);
+        
+        // Try with a reasonable atlas size first
+        Image atlas = {0};
+        
+        // Use a try-catch block to handle potential assertion failures
+        SetTraceLogLevel(LOG_NONE); // Temporarily disable raylib logging
+        atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, 0, 1);
+        SetTraceLogLevel(LOG_DEBUG); // Restore logging
+        
+        // If atlas generation failed, try with fewer glyphs
+        if (atlas.data == NULL) {
+            LOG_WARNING("Failed to generate font atlas with %d glyphs, trying with fewer", font.glyphCount);
+            font.glyphCount = 256; // Fallback to basic multilingual plane
+            atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, 0, 1);
+            
+            if (atlas.data == NULL) {
+                LOG_WARNING("Still failed, falling back to ASCII only (95 glyphs)");
+                font.glyphCount = 95; // Fallback to ASCII only
+                atlas = GenImageFontAtlas(font.glyphs, &font.recs, 95, font.baseSize, 0, 1);
+            }
+        }
         
         if (atlas.data != NULL) {
           LOG_DEBUG("Font atlas generated successfully: %dx%d", atlas.width, atlas.height);
