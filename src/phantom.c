@@ -130,10 +130,10 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
             // Check if we have a complete UTF-8 character
             int bytes = 0;
             codepoint = GetCodepoint(utf8_buffer, &bytes);
-	    LOG_DEBUG("Codepoint U+%04X for utf8_buffer: %s", codepoint, utf8_buffer);
 
             // If we have a complete character or reached the buffer limit
             if (bytes == utf8_pos || utf8_pos >= 4) {
+	    /*LOG_DEBUG("Codepoint U+%04X for utf8_buffer: %s (len=%d)", codepoint, utf8_buffer, bytes);*/
                 line_pos++;
 
                 // Update cursor position if needed
@@ -240,7 +240,9 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
                 // Reset UTF-8 buffer for next character
                 utf8_pos = 0;
                 memset(utf8_buffer, 0, sizeof(utf8_buffer));
+	  
                 char_start_needle = needle->next; // Next character starts after this one
+				
             }
 
             needle = needle->next;

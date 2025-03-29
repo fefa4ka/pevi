@@ -251,45 +251,60 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
       int key = event->key_code;
       lr_result_t result;
 
-      if (phantom->cursor.pos == 0) {
-        // TODO: Why lr_put and lr_push do the same thing here?
-        result =
-            lr_insert(&phantom->buffer->lr, key, phantom->cursor.line_no, 0);
+      // Convert Unicode codepoint to UTF-8 bytes
+      char utf8_buffer[5] = {0};
+      int bytes = 0;
+
+      // Convert codepoint to UTF-8 bytes
+      if (key <= 0x7F) {
+        // ASCII character (1 byte)
+        utf8_buffer[0] = (char)key;
+        bytes = 1;
+      } else if (key <= 0x7FF) {
+        // 2-byte character
+        utf8_buffer[0] = 0xC0 | (key >> 6);
+        utf8_buffer[1] = 0x80 | (key & 0x3F);
+	LOG_DEBUG("2-byte character U+%04X for utf8_buffer: %s (len=%d)", key, utf8_buffer, bytes);
+        bytes = 2;
+      } else if (key <= 0xFFFF) {
+        // 3-byte character
+        utf8_buffer[0] = 0xE0 | (key >> 12);
+        utf8_buffer[1] = 0x80 | ((key >> 6) & 0x3F);
+        utf8_buffer[2] = 0x80 | (key & 0x3F);
+        bytes = 3;
+      } else if (key <= 0x10FFFF) {
+        // 4-byte character
+        utf8_buffer[0] = 0xF0 | (key >> 18);
+        utf8_buffer[1] = 0x80 | ((key >> 12) & 0x3F);
+        utf8_buffer[2] = 0x80 | ((key >> 6) & 0x3F);
+        utf8_buffer[3] = 0x80 | (key & 0x3F);
+        bytes = 4;
+      }
+
+      // Insert each byte of the UTF-8 character
+      for (int i = 0; i < bytes; i++) {
+        if (phantom->cursor.pos == 0) {
+          result = lr_insert(&phantom->buffer->lr, utf8_buffer[i],
+                             phantom->cursor.line_no, 0);
+        } else if (phantom->cursor.is_eof) {
+          result = lr_put(&phantom->buffer->lr, utf8_buffer[i],
+                          phantom->cursor.line_no);
+        } else {
+          result = lr_insert_next(&phantom->buffer->lr, utf8_buffer[i],
+                                  phantom->cursor.needle);
+        }
+
         if (result != LR_SUCCESS) {
           ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                    "Failed to append character at end of line");
+                    "Failed to insert character byte");
           return;
         }
-        phantom->cursor.needle =
-            lr_owner_head(&phantom->buffer->lr, phantom->cursor.owner)->next;
-        phantom->cursor.pos++;
-      } else if (phantom->cursor.pos == 1) {
-        result = lr_insert(&phantom->buffer->lr, key, phantom->cursor.line_no,
-                           phantom->cursor.pos);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                    "Failed to insert character at beginning of line");
-          return;
+
+        // Update cursor position for next byte
+        if (i < bytes - 1) {
+          phantom->cursor.needle = phantom->cursor.needle->next;
         }
-        phantom->cursor.needle = phantom->cursor.needle->next;
-        phantom->cursor.pos++;
-      } else if (phantom->cursor.is_eof) {
-        result = lr_put(&phantom->buffer->lr, key, phantom->cursor.line_no);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                    "Failed to append character at end of line");
-          return;
-        }
-        phantom->cursor.needle = lr_owner_tail(phantom->cursor.owner);
-        phantom->cursor.pos++;
-      } else {
-        result =
-            lr_insert_next(&phantom->buffer->lr, key, phantom->cursor.needle);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                    "Failed to insert character in middle of line");
-          return;
-        }
+
         phantom->cursor.pos++;
         phantom->cursor.needle = phantom->cursor.needle->next;
       }
