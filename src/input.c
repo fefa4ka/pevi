@@ -64,7 +64,12 @@ bool input_process(Pevi_t *pevi, Camera_t *camera, InputHandler_t *handler) {
   handler->current_event.alt_down =
       IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT);
 
-  // Check for mode switching first
+  // Check for clicks in empty space first
+  if (input_check_empty_space_click(pevi, &handler->current_event)) {
+    return true; // Empty space click handled
+  }
+  
+  // Check for mode switching next
   if (input_check_mode_switch(pevi, &handler->current_event, camera)) {
     return true; // Mode switch occurred, don't process further
   }
@@ -145,6 +150,32 @@ void input_handle_command_mode(Pevi_t *pevi, InputEvent_t *event) {
     pevi->mode = PEVI_MODE_FREE;
     event->source_type = INPUT_SOURCE_COMMAND;
   }
+}
+
+// Check if mouse clicked in empty space
+static bool input_check_empty_space_click(Pevi_t *pevi, InputEvent_t *event) {
+  // Only process in FREE mode when left mouse button is clicked
+  if (pevi->mode != PEVI_MODE_FREE || !IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    return false;
+  }
+  
+  // If the event has no source type, it means the click was in empty space
+  if (event->source_type == INPUT_SOURCE_NONE) {
+    LOG_DEBUG("Click detected in empty space");
+    
+    // Unselect the active phantom if there is one
+    if (pevi->phantoms) {
+      Phantom_t *active = phantom_list_get_active(pevi->phantoms);
+      if (active) {
+        active->is_selected = false;
+        LOG_DEBUG("Unselected active phantom with ID %d", active->id);
+      }
+    }
+    
+    return true;
+  }
+  
+  return false;
 }
 
 // Check for mode switching

@@ -416,6 +416,13 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
   // Draw the phantom background and determine if it is hovered.
   phantom_draw_background(&size, &size_3d, phantom, camera);
 
+  // If the phantom is hovered, mark the event as having a source
+  // This prevents empty space click detection
+  if (phantom->is_hovered) {
+    event->source_type = INPUT_SOURCE_PHANTOM;
+    event->source = phantom;
+  }
+
   // Activate the shader for font rendering.
   BeginShaderMode(settings.font.shader);
   // Draw each line (i.e. each row of text) from the phantom's buffer.
