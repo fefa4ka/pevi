@@ -33,7 +33,7 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
         // Parameters > glyphs count: 95, font size: 16, glyphs padding in image: 0
         // px, pack method: 1 (Skyline algorithm)
         LOG_DEBUG("Generating font atlas");
-        Image atlas = GenImageFontAtlas(font.glyphs, &font.recs, 95, font.baseSize, 0, 1);
+        Image atlas = GenImageFontAtlas(font.glyphs, &font.recs, font.glyphCount, font.baseSize, 0, 1);
         
         if (atlas.data != NULL) {
           LOG_DEBUG("Font atlas generated successfully: %dx%d", atlas.width, atlas.height);

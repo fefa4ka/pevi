@@ -628,6 +628,9 @@ Phantom_t *phantom_create(void) {
   phantom->cursor = (Cursor_t){0};
   phantom->is_selected = false;
   phantom->is_hovered = false;
+  phantom->hover_char_start = NULL;
+  phantom->hover_char_end = NULL;
+  phantom->hover_char_pos = 0;
 
   return phantom;
 }
