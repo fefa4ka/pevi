@@ -125,12 +125,15 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
         if (object_is_hovered(camera, symbol_box, plane)) {
           symbol_is_hovered = true;
           
-          // Draw hover effect
-          rlDisableDepthTest();
-          DrawCubeWiresV(
-              (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
-              glyph.size, RED);
-          rlEnableDepthTest();
+          // Draw hover effect - only in non-edit mode
+          extern Pevi_t pevi;
+          if (pevi.mode != PEVI_MODE_EDIT) {
+            rlDisableDepthTest();
+            DrawCubeWiresV(
+                (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
+                glyph.size, RED);
+            rlEnableDepthTest();
+          }
           
           // Handle interaction
           event->source_type = INPUT_SOURCE_SYMBOL;
@@ -168,10 +171,10 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
       Phantom_t *active_phantom = pevi.phantoms ? phantom_list_get_active(pevi.phantoms) : NULL;
       if (phantom->cursor.needle && phantom->cursor.needle == needle && 
           phantom == active_phantom) {
-        Vector3 cursor_size = glyph.size;
-        cursor_size.y = 0;
+        // Draw a thin vertical line at the cursor position instead of highlighting the whole symbol
+        Vector3 cursor_size = {0.05f, 0.1f, glyph.size.z}; // Thin vertical line
         DrawCubeV(
-            (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
+            (Vector3){pos.x, 0, pos.z + glyph.size.z / 2},
             cursor_size, RED);
       }
 

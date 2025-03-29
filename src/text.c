@@ -55,11 +55,15 @@ static bool text_glyphs_draw(const char *content, Font *font, float font_size,
         symbol_is_hovered = true;
         
         // Enable depth test temporarily to ensure proper rendering of hover effect
-        rlDisableDepthTest();
-        DrawCubeWiresV(
-            (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
-            glyph.size, RED);
-        rlEnableDepthTest();
+        // Only show hover effect in non-edit mode
+        extern Pevi_t pevi;
+        if (pevi.mode != PEVI_MODE_EDIT) {
+          rlDisableDepthTest();
+          DrawCubeWiresV(
+              (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
+              glyph.size, RED);
+          rlEnableDepthTest();
+        }
         
         // Handle interaction
         event->source_type = INPUT_SOURCE_SYMBOL;
