@@ -115,8 +115,10 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
       // Draw the glyph.
       Glyph_t glyph = symbol_glyph(ch, font, font_size);
       if (phantom->is_hovered) {
+				LOG_DEBUG("Phantom is hovered");
         BoundingBox symbol_box = {pos, Vector3Add(pos, glyph.size)};
         if (object_is_hovered(camera, symbol_box, plane)) {
+					LOG_DEBUG("Symbol is hovered");
           symbol_is_hovered = true;
           if (event->source_type == INPUT_SOURCE_NONE) {
             symbol_interaction_handle(ch, pos, glyph.size, event);
