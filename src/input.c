@@ -275,26 +275,31 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
       if (event->key_code == KEY_BACKSPACE) {
         lr_result_t result;
 
-        if (phantom->cursor.is_eof) {
-          result = lr_pop(&phantom->buffer->lr, &phantom->cursor.needle->data,
-                          phantom->cursor.line_no);
-          if (result != LR_SUCCESS) {
-            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                      "Failed to delete character at end of line");
-            return;
+        if (phantom->cursor.pos > 1) { // Only delete if not at beginning of line
+          if (phantom->cursor.is_eof) {
+            result = lr_pop(&phantom->buffer->lr, &phantom->cursor.needle->data,
+                            phantom->cursor.line_no);
+            if (result != LR_SUCCESS) {
+              ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                        "Failed to delete character at end of line");
+              return;
+            }
+            phantom->cursor.pos--;
+            phantom->cursor.needle = lr_owner_tail(phantom->cursor.owner);
+          } else {
+            // Get the previous needle before deleting
+            struct lr_cell *prev_needle = phantom->cursor.needle->prev;
+            
+            result = lr_pull(&phantom->buffer->lr, &phantom->cursor.needle->data,
+                             phantom->cursor.line_no, phantom->cursor.pos);
+            if (result != LR_SUCCESS) {
+              ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                        "Failed to delete character in middle of line");
+              return;
+            }
+            phantom->cursor.pos--;
+            phantom->cursor.needle = prev_needle;
           }
-          phantom->cursor.pos--;
-          phantom->cursor.needle = lr_owner_tail(phantom->cursor.owner);
-        } else {
-          result = lr_pull(&phantom->buffer->lr, &phantom->cursor.needle->data,
-                           phantom->cursor.line_no, phantom->cursor.pos);
-          if (result != LR_SUCCESS) {
-            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                      "Failed to delete character in middle of line");
-            return;
-          }
-          phantom->cursor.pos--;
-          phantom->cursor.needle = NULL;
         }
         LOG_DEBUG("Cursor: %lu.%lu", phantom->cursor.line_no,
                   phantom->cursor.pos);
