@@ -1,4 +1,5 @@
 #include "phantom.h"
+#include "color_utils.h"
 #include "error.h"
 #include "helpers.h"
 #include "logger.h"
@@ -6,7 +7,6 @@
 #include "phantom_list.h"
 #include "stdlib.h"
 #include "text.h"
-#include "color_utils.h"
 
 // For tracking the initial click offset during drag operations
 static struct {
@@ -53,12 +53,13 @@ static void phantom_draw_background(const Vector4 *size, const Vector3 *size_3d,
   BoundingBox phantom_box = {{0, 0, 0}, *size_3d};
   bool phantom_hovered =
       object_is_hovered(camera, phantom_box, &phantom->plane);
-  
-  // Always draw the phantom background with its color, but with different saturation if hovered/selected
+
+  // Always draw the phantom background with its color, but with different
+  // saturation if hovered/selected
   Vector3 center = {size->x / 2, -0.15f, size->z / 2};
-  
+
   Color bg_color = phantom->color;
-  
+
   // Adjust saturation based on hover/selection state
   if (!phantom_hovered && !phantom->is_selected) {
     // Convert to HSV, reduce saturation, convert back to RGB
@@ -68,12 +69,13 @@ static void phantom_draw_background(const Vector4 *size, const Vector3 *size_3d,
   } else {
     // Convert to HSV, increase saturation, convert back to RGB
     Vector3 hsv = ColorToHSV(bg_color);
-    hsv.y = fminf(hsv.y * 1.3f, 1.0f); // Increase saturation for hovered/selected
+    hsv.y =
+        fminf(hsv.y * 1.3f, 1.0f); // Increase saturation for hovered/selected
     bg_color = ColorFromHSV(hsv.x, hsv.y, hsv.z);
   }
-  
+
   DrawCubeV(center, *size_3d, bg_color);
-  
+
   phantom->is_hovered = phantom_hovered;
 }
 
@@ -113,8 +115,7 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
         continue;
       }
 
-      if (phantom->cursor.needle == NULL &&
-          phantom->cursor.line_no == line_no &&
+      if (phantom->cursor.line_no == line_no &&
           phantom->cursor.pos == line_pos) {
         phantom->cursor.needle = needle;
       }
@@ -124,24 +125,25 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
         BoundingBox symbol_box = {pos, Vector3Add(pos, glyph.size)};
         if (object_is_hovered(camera, symbol_box, plane)) {
           symbol_is_hovered = true;
-          
+
           // Draw hover effect - only in non-edit mode
           extern Pevi_t pevi;
           if (pevi.mode != PEVI_MODE_EDIT) {
             rlDisableDepthTest();
-            DrawCubeWiresV(
-                (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
-                glyph.size, RED);
+            DrawCubeWiresV((Vector3){pos.x + glyph.size.x / 2, 0,
+                                     pos.z + glyph.size.z / 2},
+                           glyph.size, RED);
             rlEnableDepthTest();
           }
-          
+
           // Handle interaction
           event->source_type = INPUT_SOURCE_SYMBOL;
-          
+
           if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             event->mouse = INPUT_MOUSE_CLICK;
-            LOG_DEBUG("CLICK symbol %c at line %lu pos %lu", ch, line_no, line_pos);
-            
+            LOG_DEBUG("CLICK symbol %c at line %lu pos %lu", ch, line_no,
+                      line_pos);
+
             // Update cursor position
             phantom->cursor.owner = line;
             phantom->cursor.needle = needle;
@@ -152,12 +154,13 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
             } else {
               phantom->cursor.is_eof = false;
             }
-            
+
             // Set this phantom as active when a symbol is clicked
             extern Pevi_t pevi;
             if (pevi.phantoms) {
               phantom_list_set_active_by_id(pevi.phantoms, phantom->id);
-              LOG_DEBUG("Set phantom with ID %d as active due to symbol click", phantom->id);
+              LOG_DEBUG("Set phantom with ID %d as active due to symbol click",
+                        phantom->id);
             }
           } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             event->mouse = INPUT_MOUSE_DRAG;
@@ -168,14 +171,31 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
       }
       // Draw cursor only if this phantom is active
       extern Pevi_t pevi;
-      Phantom_t *active_phantom = pevi.phantoms ? phantom_list_get_active(pevi.phantoms) : NULL;
-      if (phantom->cursor.needle && phantom->cursor.needle == needle && 
+      Phantom_t *active_phantom =
+          pevi.phantoms ? phantom_list_get_active(pevi.phantoms) : NULL;
+      if (phantom->cursor.needle && phantom->cursor.needle == needle &&
           phantom == active_phantom) {
-        // Draw a thin vertical line at the cursor position instead of highlighting the whole symbol
-        Vector3 cursor_size = {0.05f, 0.1f, glyph.size.z}; // Thin vertical line
-        DrawCubeV(
-            (Vector3){pos.x, 0, pos.z + glyph.size.z / 2},
-            cursor_size, RED);
+        if (pevi.mode == PEVI_MODE_EDIT) {
+          // Draw a thin vertical line at the cursor position instead of
+          // highlighting the whole symbol
+          Vector3 cursor_size = {0.05f, 0.1f,
+                                 glyph.size.z}; // Thin vertical line
+          float cursor_pos_x = pos.x + glyph.size.x;
+          if (phantom->cursor.pos == 0) {
+            cursor_pos_x = pos.x;
+          }
+
+          DrawCubeV(
+              (Vector3){cursor_pos_x, 0, pos.z + glyph.size.z / 2},
+              cursor_size, RED);
+        } else {
+
+          Vector3 cursor_size = glyph.size;
+          cursor_size.y = 0;
+          DrawCubeV(
+              (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
+              cursor_size, RED);
+        }
       }
 
       symbol_draw(&glyph, pos, WHITE, false);
@@ -195,81 +215,84 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
 // Calculate new position for phantom during drag operation
 static Vector3 phantom_drag_position_calculate(Camera_t *camera,
                                                Vector3 current_pos) {
-  LOG_DEBUG("Calculating drag position for phantom %d", 
-           drag_state.phantom ? drag_state.phantom->id : -1);
-  
+  LOG_DEBUG("Calculating drag position for phantom %d",
+            drag_state.phantom ? drag_state.phantom->id : -1);
+
   // Get the ray from camera to mouse position
   Ray ray = GetMouseRay(GetMousePosition(), camera->camera);
-  
+
   // Store the initial distance from camera to phantom when drag starts
   static float initial_distance = 0.0f;
-  
+
   // On first drag calculation, store the initial distance
   if (!drag_offset.initialized || drag_offset.phantom != drag_state.phantom) {
     initial_distance = Vector3Distance(camera->camera.position, current_pos);
     LOG_DEBUG("Initial distance to camera: %.2f", initial_distance);
   }
-  
+
   // Create a plane that's aligned with the camera view plane
   // This is the same approach used in camera_plane()
   Vector3 camera_forward = Vector3Normalize(
       Vector3Subtract(camera->camera.target, camera->camera.position));
-  
+
   // Create a point on the plane at the initial distance from the camera
   Vector3 plane_point = Vector3Add(
-      camera->camera.position,
-      Vector3Scale(camera_forward, initial_distance)
-  );
-  
+      camera->camera.position, Vector3Scale(camera_forward, initial_distance));
+
   // The plane normal is the same as the camera forward direction
   Vector3 plane_normal = camera_forward;
-  
+
   // Calculate intersection of ray with this plane
   float denominator = Vector3DotProduct(ray.direction, plane_normal);
   if (fabs(denominator) < 0.0001f) {
     // Ray is parallel to plane, no intersection
     return current_pos;
   }
-  
-  // Calculate the plane constant d from the point-normal form of the plane equation
+
+  // Calculate the plane constant d from the point-normal form of the plane
+  // equation
   float d = -Vector3DotProduct(plane_normal, plane_point);
-  
+
   // Calculate t where ray intersects the plane
   float t = -(Vector3DotProduct(plane_normal, ray.position) + d) / denominator;
-  
+
   if (t < 0) {
     // Intersection is behind the camera
     return current_pos;
   }
-  
-  // Calculate intersection point
-  Vector3 intersection = Vector3Add(ray.position, Vector3Scale(ray.direction, t));
 
-  // If this is the first drag calculation for this phantom, calculate the offset
-  if ((!drag_offset.initialized || drag_offset.phantom != drag_state.phantom) && drag_state.active) {
+  // Calculate intersection point
+  Vector3 intersection =
+      Vector3Add(ray.position, Vector3Scale(ray.direction, t));
+
+  // If this is the first drag calculation for this phantom, calculate the
+  // offset
+  if ((!drag_offset.initialized || drag_offset.phantom != drag_state.phantom) &&
+      drag_state.active) {
     // Calculate the offset from the intersection point to the phantom position
     drag_offset.offset = Vector3Subtract(current_pos, intersection);
     drag_offset.initialized = true;
     drag_offset.phantom = drag_state.phantom;
-    
+
     LOG_DEBUG("Initialized drag offset=(%.2f,%.2f,%.2f) for phantom %d",
-             drag_offset.offset.x, drag_offset.offset.y, drag_offset.offset.z,
-             drag_state.phantom ? drag_state.phantom->id : -1);
+              drag_offset.offset.x, drag_offset.offset.y, drag_offset.offset.z,
+              drag_state.phantom ? drag_state.phantom->id : -1);
   }
 
   // Apply the offset to maintain the relative position
   Vector3 adjusted_position = Vector3Add(intersection, drag_offset.offset);
-  
-  // Ensure we maintain the exact same distance from camera and stay on the camera plane
-  Vector3 camera_to_adjusted = Vector3Subtract(adjusted_position, camera->camera.position);
+
+  // Ensure we maintain the exact same distance from camera and stay on the
+  // camera plane
+  Vector3 camera_to_adjusted =
+      Vector3Subtract(adjusted_position, camera->camera.position);
   float current_distance = Vector3Length(camera_to_adjusted);
-  
+
   // Scale to maintain the original distance
   Vector3 fixed_position = Vector3Add(
       camera->camera.position,
-      Vector3Scale(Vector3Normalize(camera_to_adjusted), initial_distance)
-  );
-  
+      Vector3Scale(Vector3Normalize(camera_to_adjusted), initial_distance));
+
   // Apply some smoothing/damping to make movement less jerky
   const float smoothing = 0.8f;
   Vector3 new_pos = {
@@ -294,7 +317,7 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
     // Handle mouse click - start potential drag
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       event->mouse = INPUT_MOUSE_CLICK;
-      
+
       // Always select the phantom on click, don't toggle
       phantom->is_selected = true;
 
@@ -325,16 +348,16 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
         if (!drag_state.active &&
             Vector2Distance(current_mouse, drag_state.start_mouse) > 1.0f) {
           drag_state.active = true;
-          
+
           // Reset drag offset when starting a new drag
           drag_offset.initialized = false;
           drag_offset.phantom = NULL;
-          
+
           // Make phantom face the camera when drag starts
           // Use the camera_plane function to get proper alignment
           Plane camera_plane_alignment = camera_plane(&camera->camera);
           phantom->plane.angles = camera_plane_alignment.angles;
-          
+
           LOG_DEBUG("Starting drag of phantom %d", phantom->id);
         }
 
@@ -348,7 +371,7 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
 
           // Update phantom position
           phantom->plane.pos = new_pos;
-          
+
           // Keep phantom aligned with camera during drag
           Plane camera_plane_alignment = camera_plane(&camera->camera);
           phantom->plane.angles = camera_plane_alignment.angles;
@@ -368,7 +391,7 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
         LOG_DEBUG("Ending drag of phantom %d", phantom->id);
         drag_state.active = false;
         drag_state.phantom = NULL;
-        
+
         // Reset drag offset
         drag_offset.initialized = false;
         drag_offset.phantom = NULL;
@@ -395,7 +418,7 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
 
       // Update phantom position
       phantom->plane.pos = new_pos;
-      
+
       // Keep phantom aligned with camera during drag
       Plane camera_plane_alignment = camera_plane(&camera->camera);
       phantom->plane.angles = camera_plane_alignment.angles;
@@ -451,7 +474,8 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
   EndShaderMode();
 
   // Handle input events for the phantom.
-  if (phantom->is_hovered || (drag_state.active && drag_state.phantom == phantom)) {
+  if (phantom->is_hovered ||
+      (drag_state.active && drag_state.phantom == phantom)) {
     phantom_event_handle(phantom, event, camera);
   }
 

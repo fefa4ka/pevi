@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include <raymath.h>
 #include <rlgl.h>
+#include "logger.h"
 
 Glyph_t symbol_glyph(char symbol, Font *font, float font_size) {
   Font glyph_font = *font;

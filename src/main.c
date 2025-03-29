@@ -58,6 +58,7 @@ void remove_phantom(void *arg) {
       LOG_WARNING("No active phantom to remove");
     }
   }
+
 }
 
 void new_phantom(void *arg) {
@@ -185,7 +186,7 @@ bool resource_load() {
   if (test_file == NULL) {
     test_file = fopen("test.txt", "w");
     if (test_file != NULL) {
-      if (fprintf(test_file, "Welcome to Pevi!\nThis is a test file.\nYou can edit "
+      if (fprintf(test_file, "Привет to Pevi!\nThis is a test file.\nYou can edit "
                          "this text in 3D space.") < 0) {
         ERROR_SET(ERROR_FILE_ACCESS, ERROR_WARNING, "Failed to write to test file");
         success = false;
