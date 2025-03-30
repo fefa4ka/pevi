@@ -151,9 +151,9 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
 
           phantom->cursor.char_start = char_start_needle;
           phantom->cursor.char_end = needle;
-          LOG_DEBUG("#%lu.%lu(%lu) '%s', Char start: %p, char end: %p, bytes: %d", 
-                    line_no, line_pos, char_pos, utf8_buffer, 
-                    phantom->cursor.char_start, phantom->cursor.char_end, bytes);
+          /*LOG_DEBUG("#%lu.%lu(%lu) '%s', Char start: %p, char end: %p, bytes: %d", */
+          /*          line_no, line_pos, char_pos, utf8_buffer, */
+          /*          phantom->cursor.char_start, phantom->cursor.char_end, bytes);*/
         }
 
         // Draw the glyph for the complete character
