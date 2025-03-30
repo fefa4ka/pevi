@@ -325,72 +325,78 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
             // Get the character start and end pointers
             struct lr_cell *start = phantom->cursor.char_start;
             struct lr_cell *end = phantom->cursor.char_end;
-            
+
             if (!start || !end) {
               LOG_ERROR("Invalid character pointers for deletion");
               return;
             }
-            
+
             LOG_DEBUG("Deleting character from %p to %p", start, end);
-            
+
             // Calculate how many bytes to delete
             struct lr_cell *current = start;
             int bytes_to_delete = 0;
-            
+
             do {
               bytes_to_delete++;
-              
+
               // If we've reached the end, break
-              if (current == end) break;
-              
+              if (current == end)
+                break;
+
               current = current->next;
             } while (current != NULL);
-            
+
             LOG_DEBUG("Deleting %d bytes for UTF-8 character", bytes_to_delete);
-            
+
             // Store the position for deletion
             size_t delete_pos = phantom->cursor.char_pos;
-            
+
             // Delete each byte of the character
             for (int i = 0; i < bytes_to_delete; i++) {
               lr_data_t data;
-              result = lr_pull(&phantom->buffer->lr, &data, phantom->cursor.line_no, delete_pos);
-              
+              result = lr_pull(&phantom->buffer->lr, &data,
+                               phantom->cursor.line_no, delete_pos--);
+
               if (result != LR_SUCCESS) {
                 ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
                           "Failed to delete character byte");
                 return;
               }
-              
-              LOG_DEBUG("Deleted byte %d of %d at position %zu", i+1, bytes_to_delete, delete_pos);
+
+              LOG_DEBUG("Deleted byte %d of %d at position %zu", i + 1,
+                        bytes_to_delete, delete_pos);
             }
 
             // Update cursor position
             phantom->cursor.pos--;
-            
+
             // Update cursor pointers
             if (phantom->cursor.pos > 0) {
               // Find the previous character
-              struct lr_cell *owner = lr_owner_find(&phantom->buffer->lr, lr_owner(phantom->cursor.line_no));
+              struct lr_cell *owner = lr_owner_find(
+                  &phantom->buffer->lr, lr_owner(phantom->cursor.line_no));
               if (owner) {
-                struct lr_cell *head = lr_owner_head(&phantom->buffer->lr, owner);
+                struct lr_cell *head =
+                    lr_owner_head(&phantom->buffer->lr, owner);
                 struct lr_cell *current = head;
                 size_t pos = 0;
                 size_t char_pos = 0;
-                
-                // Iterate through characters to find the one at cursor position - 1
+
+                // Iterate through characters to find the one at cursor position
+                // - 1
                 char utf8_buf[5] = {0};
                 int utf8_pos = 0;
                 struct lr_cell *char_start = current;
-                
+
                 while (current && pos < phantom->cursor.pos) {
                   char ch = current->data;
                   utf8_buf[utf8_pos++] = ch;
-                  
+
                   // Check if we have a complete UTF-8 character
                   int bytes = 0;
                   GetCodepoint(utf8_buf, &bytes);
-                  
+
                   if (bytes == utf8_pos || utf8_pos >= 4) {
                     // Complete character
                     pos++;
@@ -402,7 +408,7 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                       phantom->cursor.char_pos = char_pos;
                       break;
                     }
-                    
+
                     // Reset for next character
                     utf8_pos = 0;
                     memset(utf8_buf, 0, sizeof(utf8_buf));
@@ -411,11 +417,11 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                   } else {
                     char_pos++; // Count each byte
                   }
-                  
+
                   current = current->next;
                 }
-                
-                LOG_DEBUG("After backspace: cursor at pos %zu, char_pos %zu", 
+
+                LOG_DEBUG("After backspace: cursor at pos %zu, char_pos %zu",
                           phantom->cursor.pos, phantom->cursor.char_pos);
               }
             } else {
