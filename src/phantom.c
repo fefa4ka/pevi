@@ -100,6 +100,48 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
         lr_owner_find(&phantom->buffer->lr, lr_owner(line_no));
     if (!line) {
       // Handle empty line - advance position to next line
+      // Check if this empty line is being clicked
+      if (phantom->is_hovered) {
+        // Create a bounding box for the empty line
+        Vector3 line_size = {2.0f, 0.1f, scale}; // Width of 2 units for empty line
+        Vector3 line_pos = {pos.x, 0, pos.z + line_size.z / 2};
+        BoundingBox empty_line_box = {
+          {line_pos.x, line_pos.y, line_pos.z - line_size.z / 2},
+          {line_pos.x + line_size.x, line_pos.y + line_size.y, line_pos.z + line_size.z / 2}
+        };
+        
+        if (object_is_hovered(camera, empty_line_box, plane)) {
+          // Handle mouse events for empty line
+          if (event && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            event->source_type = INPUT_SOURCE_SYMBOL;
+            event->source = phantom;
+            event->mouse = INPUT_MOUSE_CLICK;
+            LOG_DEBUG("CLICK on empty line at line %zu", line_no);
+            
+            // Update cursor position to beginning of empty line
+            phantom->cursor.line_no = line_no;
+            phantom->cursor.pos = 0;
+            phantom->cursor.needle = NULL;
+            phantom->cursor.is_eof = true;
+            phantom->cursor.owner = NULL;
+            phantom->cursor.char_pos = 0;
+            phantom->cursor.char_start = NULL;
+            phantom->cursor.char_end = NULL;
+          }
+          
+          // Draw cursor if this is the current cursor position
+          if (phantom->cursor.line_no == line_no) {
+            extern Pevi_t pevi;
+            if (pevi.mode == PEVI_MODE_EDIT) {
+              // Draw a thin vertical line at the cursor position
+              Vector3 cursor_size = {0.05f, 0.1f, scale}; // Thin vertical line
+              DrawCubeV((Vector3){pos.x, 0, pos.z + scale / 2}, cursor_size, RED);
+            }
+          }
+        }
+      }
+      
+      // Advance position to next line
       pos.x = 0;
       pos.z += scale + (phantom->font.line_spacing / (float)font->baseSize) * scale;
       continue;

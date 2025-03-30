@@ -285,12 +285,15 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
       // Insert each byte of the UTF-8 character
       for (int i = 0; i < bytes; i++) {
         if (phantom->cursor.pos == 0) {
+          // At beginning of line
           result = lr_insert(&phantom->buffer->lr, utf8_buffer[i],
                              phantom->cursor.line_no, i);
-        } else if (phantom->cursor.is_eof) {
+        } else if (phantom->cursor.is_eof || phantom->cursor.needle == NULL) {
+          // At end of line or empty line
           result = lr_put(&phantom->buffer->lr, utf8_buffer[i],
                           phantom->cursor.line_no);
         } else {
+          // In middle of line
           struct lr_cell *needle = phantom->cursor.needle;
           for (int j = 0; j < i; j++) {
             needle = needle->next;
