@@ -494,12 +494,14 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
           LOG_DEBUG("Merged lines, cursor at %lu.%lu (UTF-8 char count: %zu)", 
                     phantom->cursor.line_no, phantom->cursor.pos, char_count);
         }
+
+        phantom->line_to -= 1;
         LOG_DEBUG("Cursor: %lu.%lu", phantom->cursor.line_no,
                   phantom->cursor.pos);
       } else if (event->key_code == KEY_ENTER) {
         // Split the current line at cursor position
         lr_result_t result = lr_text_split(
-            &phantom->buffer->lr, phantom->cursor.line_no, phantom->cursor.pos);
+            &phantom->buffer->lr, phantom->cursor.line_no, phantom->cursor.char_pos + 1);
         if (result != LR_SUCCESS) {
           ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
                     "Failed to split line");
