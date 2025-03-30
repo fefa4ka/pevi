@@ -58,7 +58,18 @@ void remove_phantom(void *arg) {
       LOG_WARNING("No active phantom to remove");
     }
   }
+}
 
+void dump_buffer(void *arg) {
+  if (pevi.phantoms) {
+    Phantom_t *active = phantom_list_get_active(pevi.phantoms);
+    if (active && active->buffer) {
+      LOG_INFO("Dumping buffer of phantom with ID %d", active->id);
+      lr_dump(&active->buffer->lr);
+    } else {
+      LOG_WARNING("No active phantom or phantom has no buffer to dump");
+    }
+  }
 }
 
 void new_phantom(void *arg) {
@@ -114,6 +125,7 @@ Command_t commands[] = {
     {"d", remove_phantom, NULL},  // 'd' command for deleting active phantom
     {"new", new_phantom, NULL},
     {"e", open_file, NULL},  // 'e' command for opening files
+    {"dump", dump_buffer, NULL},  // 'dump' command to dump the active phantom's buffer
     {0} // End marker
 };
 
