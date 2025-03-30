@@ -174,6 +174,11 @@ static bool input_check_empty_space_click(Pevi_t *pevi, InputEvent_t *event) {
         LOG_DEBUG("Unselected active phantom with ID %d", active->id);
       }
     }
+    
+    // Mark the event as handled by setting a source type
+    // This prevents further processing of this click event
+    event->source_type = INPUT_SOURCE_SPACE;
+    event->mouse = INPUT_MOUSE_CLICK;
 
     return true;
   }

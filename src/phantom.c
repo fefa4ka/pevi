@@ -242,8 +242,8 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
 
               // Store the complete character information
 
-              // Handle mouse events
-              if (event) {
+              // Handle mouse events - only if the event hasn't been handled by something else
+              if (event && event->source_type != INPUT_SOURCE_SPACE) {
                 event->source_type = INPUT_SOURCE_SYMBOL;
                 event->source = phantom;
 
@@ -422,8 +422,8 @@ static void phantom_event_handle(Phantom_t *phantom, InputEvent_t *event,
   // Check if we're already dragging this phantom
   bool is_dragging = (drag_state.active && drag_state.phantom == phantom);
 
-  // Handle events when phantom is hovered or being dragged
-  if (phantom->is_hovered || is_dragging) {
+  // Handle events when phantom is hovered or being dragged, but only if the event hasn't been handled by something else
+  if ((phantom->is_hovered || is_dragging) && event->source_type != INPUT_SOURCE_SPACE) {
     event->source_type = INPUT_SOURCE_PHANTOM;
     event->source = phantom;
 
@@ -572,9 +572,9 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
   // Draw the phantom background and determine if it is hovered.
   phantom_draw_background(&size, &size_3d, phantom, camera);
 
-  // If the phantom is hovered, mark the event as having a source
-  // This prevents empty space click detection
-  if (phantom->is_hovered) {
+  // If the phantom is hovered and the event hasn't already been handled by something else
+  // (like an empty space click), mark the event as having a source
+  if (phantom->is_hovered && event->source_type != INPUT_SOURCE_SPACE) {
     event->source_type = INPUT_SOURCE_PHANTOM;
     event->source = phantom;
   }
@@ -586,9 +586,9 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
                      scale, camera, &phantom->plane, event);
   EndShaderMode();
 
-  // Handle input events for the phantom.
-  if (phantom->is_hovered ||
-      (drag_state.active && drag_state.phantom == phantom)) {
+  // Handle input events for the phantom, but only if the event hasn't been handled by something else
+  if ((phantom->is_hovered || (drag_state.active && drag_state.phantom == phantom)) && 
+      event->source_type != INPUT_SOURCE_SPACE) {
     phantom_event_handle(phantom, event, camera);
   }
 
