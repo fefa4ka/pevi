@@ -441,46 +441,46 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
             // Can't merge first line
             return;
           }
-          
+
           // Get the previous line
           struct lr_cell *prev_line = lr_owner_find(
               &phantom->buffer->lr, lr_owner(phantom->cursor.line_no - 1));
-          
+
           if (!prev_line) {
             LOG_ERROR("Failed to find previous line");
             return;
           }
-          
+
           // Count UTF-8 characters in the previous line
           struct lr_cell *head = lr_owner_head(&phantom->buffer->lr, prev_line);
           struct lr_cell *tail = lr_owner_tail(prev_line);
           struct lr_cell *current = head;
-          
+
           size_t char_count = 0;
           char utf8_buf[5] = {0};
           int utf8_pos = 0;
-          
+
           // Iterate through the line counting complete UTF-8 characters
           do {
             char ch = current->data;
             utf8_buf[utf8_pos++] = ch;
-            
+
             // Check if we have a complete UTF-8 character
             int bytes = 0;
             GetCodepoint(utf8_buf, &bytes);
-            
+
             if (bytes == utf8_pos || utf8_pos >= 4) {
               // Complete character
               char_count++;
-              
+
               // Reset for next character
               utf8_pos = 0;
               memset(utf8_buf, 0, sizeof(utf8_buf));
             }
-            
+
             current = current->next;
           } while (current != tail->next);
-          
+
           // Merge the lines
           result = lr_text_line_merge(&phantom->buffer->lr,
                                       phantom->cursor.line_no - 1,
@@ -494,7 +494,7 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
 
           phantom->cursor.line_no--;
           phantom->cursor.pos = char_count;
-          LOG_DEBUG("Merged lines, cursor at %lu.%lu (UTF-8 char count: %zu)", 
+          LOG_DEBUG("Merged lines, cursor at %lu.%lu (UTF-8 char count: %zu)",
                     phantom->cursor.line_no, phantom->cursor.pos, char_count);
         }
 
@@ -503,34 +503,45 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                   phantom->cursor.pos);
       } else if (event->key_code == KEY_ENTER) {
         // Split the current line at cursor position
-        lr_result_t result = lr_text_split(
-            &phantom->buffer->lr, phantom->cursor.line_no, phantom->cursor.char_pos + 1);
-        if (result != LR_SUCCESS) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                    "Failed to split line");
-          return;
+        if (phantom->cursor.is_eof) {
+          lr_result_t result = lr_text_line_insert(&phantom->buffer->lr,
+                                                   phantom->cursor.line_no + 1);
+          if (result != LR_SUCCESS) {
+            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                      "Failed to add new line");
+            return;
+          }
+        } else {
+          lr_result_t result =
+              lr_text_split(&phantom->buffer->lr, phantom->cursor.line_no,
+                            phantom->cursor.char_pos + 1);
+          if (result != LR_SUCCESS) {
+            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                      "Failed to split line");
+            return;
+          }
+
+          // Update cursor needle to point to the beginning of the new line
+          phantom->cursor.owner = lr_owner_find(
+              &phantom->buffer->lr, lr_owner(phantom->cursor.line_no));
+          if (!phantom->cursor.owner) {
+            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                      "Failed to find new line owner");
+            return;
+          }
+
+          phantom->cursor.needle =
+              lr_owner_head(&phantom->buffer->lr, phantom->cursor.owner);
+          if (!phantom->cursor.needle) {
+            ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                      "Failed to find new line head");
+            return;
+          }
         }
 
         // Move cursor to the beginning of the new line
         phantom->cursor.line_no++;
         phantom->cursor.pos = 0;
-
-        // Update cursor needle to point to the beginning of the new line
-        phantom->cursor.owner = lr_owner_find(
-            &phantom->buffer->lr, lr_owner(phantom->cursor.line_no));
-        if (!phantom->cursor.owner) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                    "Failed to find new line owner");
-          return;
-        }
-
-        phantom->cursor.needle =
-            lr_owner_head(&phantom->buffer->lr, phantom->cursor.owner);
-        if (!phantom->cursor.needle) {
-          ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                    "Failed to find new line head");
-          return;
-        }
 
         phantom->cursor.is_eof = false;
         phantom->line_to += 1;

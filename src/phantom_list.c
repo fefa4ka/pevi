@@ -1,4 +1,5 @@
 #include "phantom_list.h"
+#include "lr_text.h"
 
 // Initialize a new phantom list
 PhantomList_t *phantom_list_create(void) {
@@ -129,7 +130,7 @@ PhantomNode_t *phantom_list_create_phantom(PhantomList_t *list, const char *file
     phantom->font.spacing = 0.6;
     phantom->font.line_spacing = 0.6;
     phantom->line_from = 1;
-    phantom->line_to = 3;
+    LOG_DEBUG("Phantom line count: %d", phantom->line_to);
     
     // Open buffer if filename provided
     if (filename) {
@@ -141,6 +142,9 @@ PhantomNode_t *phantom_list_create_phantom(PhantomList_t *list, const char *file
         }
     }
     
+
+    lr_dump(&phantom->buffer->lr);
+    phantom->line_to = lr_text_count(&phantom->buffer->lr);
     // Add phantom to list
     PhantomNode_t *node = phantom_list_add(list, phantom);
     if (!node) {

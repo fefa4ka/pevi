@@ -8,9 +8,13 @@
 typedef struct {
   size_t line_no;
   size_t pos;
+	size_t char_pos;
   bool is_eof;
   struct lr_cell *owner;
   struct lr_cell *needle;
+
+  struct lr_cell *char_start;  // Start of hovered character
+  struct lr_cell *char_end;    // End of hovered character
 } Cursor_t;
 
 typedef struct {
@@ -30,11 +34,6 @@ typedef struct {
   Cursor_t cursor;
   bool is_selected;
   bool is_hovered;
-
-  // For Unicode character hovering
-  struct lr_cell *hover_char_start;  // Start of hovered character
-  struct lr_cell *hover_char_end;    // End of hovered character
-  size_t hover_char_pos;             // Position of hovered character
 } Phantom_t;
 
 typedef struct {

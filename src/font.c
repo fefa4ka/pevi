@@ -20,12 +20,12 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
       
       // SDF font generation from TTF font
       font.baseSize = 64; // Increased base size to accommodate larger characters
-      font.glyphCount = 256; // Reduced from 512 to avoid rect packing issues
+      font.glyphCount = 1200; // Reduced from 512 to avoid rect packing issues
       LOG_DEBUG("Generating SDF font with base size %d, glyph count %d", font.baseSize, font.glyphCount);
       
       // Parameters > font size: font.baseSize, no glyphs array provided (0), glyphs count: 0
       // (defaults to 95)
-      font.glyphs = LoadFontData(fileData, fileSize, font.baseSize, 0, 0, FONT_SDF);
+      font.glyphs = LoadFontData(fileData, fileSize, font.baseSize, 0, font.glyphCount, FONT_SDF);
       
       if (font.glyphs != NULL) {
         LOG_DEBUG("Font data loaded successfully");
@@ -38,8 +38,6 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
         Image atlas = {0};
         
         // Temporarily disable raylib logging to avoid warnings
-        int prevLogLevel = GetTraceLogLevel();
-        SetTraceLogLevel(LOG_NONE);
         
         // Try with increasing atlas padding until successful
         int padding = 4;
@@ -70,8 +68,6 @@ Font_t font_load(char *ttf_filename, char *shader_filename) {
         }
         
         // Restore previous log level
-        SetTraceLogLevel(prevLogLevel);
-        
         if (atlas.data != NULL) {
           LOG_DEBUG("Font atlas generated successfully: %dx%d", atlas.width, atlas.height);
           font.texture = LoadTextureFromImage(atlas);
