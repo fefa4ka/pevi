@@ -98,8 +98,12 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
     size_t line_pos = 0;
     struct lr_cell *line =
         lr_owner_find(&phantom->buffer->lr, lr_owner(line_no));
-    if (!line)
+    if (!line) {
+      // Handle empty line - advance position to next line
+      pos.x = 0;
+      pos.z += scale + (phantom->font.line_spacing / (float)font->baseSize) * scale;
       continue;
+    }
 
     // Get the head and tail of the line.
     struct lr_cell *cell_head = lr_owner_head(&phantom->buffer->lr, line);
