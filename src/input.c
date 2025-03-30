@@ -438,8 +438,47 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
             // Can't merge first line
             return;
           }
-          size_t line_prev_length =
-              lr_count_owned(&phantom->buffer->lr, phantom->cursor.line_no - 1);
+          
+          // Get the previous line
+          struct lr_cell *prev_line = lr_owner_find(
+              &phantom->buffer->lr, lr_owner(phantom->cursor.line_no - 1));
+          
+          if (!prev_line) {
+            LOG_ERROR("Failed to find previous line");
+            return;
+          }
+          
+          // Count UTF-8 characters in the previous line
+          struct lr_cell *head = lr_owner_head(&phantom->buffer->lr, prev_line);
+          struct lr_cell *tail = lr_owner_tail(prev_line);
+          struct lr_cell *current = head;
+          
+          size_t char_count = 0;
+          char utf8_buf[5] = {0};
+          int utf8_pos = 0;
+          
+          // Iterate through the line counting complete UTF-8 characters
+          do {
+            char ch = current->data;
+            utf8_buf[utf8_pos++] = ch;
+            
+            // Check if we have a complete UTF-8 character
+            int bytes = 0;
+            GetCodepoint(utf8_buf, &bytes);
+            
+            if (bytes == utf8_pos || utf8_pos >= 4) {
+              // Complete character
+              char_count++;
+              
+              // Reset for next character
+              utf8_pos = 0;
+              memset(utf8_buf, 0, sizeof(utf8_buf));
+            }
+            
+            current = current->next;
+          } while (current != tail->next);
+          
+          // Merge the lines
           result = lr_text_line_merge(&phantom->buffer->lr,
                                       phantom->cursor.line_no - 1,
                                       phantom->cursor.line_no);
@@ -451,7 +490,9 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
           }
 
           phantom->cursor.line_no--;
-          phantom->cursor.pos = line_prev_length;
+          phantom->cursor.pos = char_count;
+          LOG_DEBUG("Merged lines, cursor at %lu.%lu (UTF-8 char count: %zu)", 
+                    phantom->cursor.line_no, phantom->cursor.pos, char_count);
         }
         LOG_DEBUG("Cursor: %lu.%lu", phantom->cursor.line_no,
                   phantom->cursor.pos);
