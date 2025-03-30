@@ -111,6 +111,13 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
         };
         
         if (object_is_hovered(camera, empty_line_box, plane)) {
+          // Visual hover effect for empty line - use consistent size with characters
+          rlDisableDepthTest();
+          Vector3 hover_size = {scale, 0.1f, scale}; // Same height as regular characters
+          DrawCubeWiresV((Vector3){pos.x + hover_size.x / 2, 0, pos.z + hover_size.z / 2}, 
+                         hover_size, RED);
+          rlEnableDepthTest();
+          
           // Handle mouse events for empty line
           if (event && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             event->source_type = INPUT_SOURCE_SYMBOL;
