@@ -102,8 +102,8 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
       // Handle empty line - advance position to next line
       // Check if this empty line is being clicked
       if (phantom->is_hovered) {
-        // Create a bounding box for the empty line
-        Vector3 line_size = {2.0f, 0.1f, scale}; // Width of 2 units for empty line
+        // Create a bounding box for the empty line - use consistent size with characters
+        Vector3 line_size = {scale, 0.1f, scale}; // Same height as regular characters
         Vector3 line_pos = {pos.x, 0, pos.z + line_size.z / 2};
         BoundingBox empty_line_box = {
           {line_pos.x, line_pos.y, line_pos.z - line_size.z / 2},
