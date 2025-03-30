@@ -291,10 +291,10 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
           result = lr_put(&phantom->buffer->lr, utf8_buffer[i],
                           phantom->cursor.line_no);
         } else {
-	struct lr_cell *needle = phantom->cursor.needle;
-				for (int j = 0; j < i; j++) {
-					needle = needle->next;
-			}
+          struct lr_cell *needle = phantom->cursor.needle;
+          for (int j = 0; j < i; j++) {
+            needle = needle->next;
+          }
           result = lr_insert_next(&phantom->buffer->lr, utf8_buffer[i], needle);
         }
 
@@ -303,7 +303,6 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                     "Failed to insert character byte");
           return;
         }
-
       }
       phantom->cursor.pos++;
     } else if (event->key_type == INPUT_KEY_SPECIAL) {
@@ -313,169 +312,41 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
         if (phantom->cursor.pos >
             0) { // Only delete if not at beginning of line
           if (phantom->cursor.is_eof) {
-            // Get the current tail of the line
-            struct lr_cell *tail = lr_owner_tail(phantom->cursor.owner);
-            
-            // We need to determine if we're deleting a multi-byte UTF-8 character
-            // First, find the start of the character by looking backward
-            
-            // Start with the tail and move backward
-            struct lr_cell *current = tail;
-            struct lr_cell *prev = NULL;
-            int bytes_to_delete = 1; // At minimum delete 1 byte
-            
-            // Check if we're dealing with a UTF-8 continuation byte (10xxxxxx)
-            if ((current->data & 0xC0) == 0x80) {
-              // This is a continuation byte, so we need to find the start byte
-              // Move backward until we find a byte that's not a continuation byte
-              bytes_to_delete = 0;
-              
-              while (current && (current->data & 0xC0) == 0x80) {
-                bytes_to_delete++;
-                prev = current;
-                
-                // Find the previous cell
-                struct lr_cell *temp = lr_owner_head(&phantom->buffer->lr, phantom->cursor.owner);
-                if (temp == current) break; // We're at the head already
-                
-                while (temp->next != current) {
-                  temp = temp->next;
-                }
-                current = temp;
-              }
-              
-              // Now current points to the start byte of the UTF-8 character
-              // Add the start byte to our count
-              bytes_to_delete++;
+            result = lr_pop(&phantom->buffer->lr, &phantom->cursor.needle->data,
+                            phantom->cursor.line_no);
+            if (result != LR_SUCCESS) {
+              ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
+                        "Failed to delete character at end of line");
+              return;
             }
-            
-            // Delete the required number of bytes
-            for (int i = 0; i < bytes_to_delete; i++) {
-              result = lr_pop(&phantom->buffer->lr, &tail->data,
-                              phantom->cursor.line_no);
-              if (result != LR_SUCCESS) {
-                ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                          "Failed to delete character byte at end of line");
-                return;
-              }
-              
-              // Update tail for next iteration if needed
-              if (i < bytes_to_delete - 1) {
-                tail = lr_owner_tail(phantom->cursor.owner);
-              }
-            }
-            
             phantom->cursor.pos--;
             phantom->cursor.needle = lr_owner_tail(phantom->cursor.owner);
           } else {
-            // For characters in the middle of a line, we need a different approach
-            
-            // First, find the start of the character we want to delete
-            struct lr_cell *start_cell = NULL;
-            struct lr_cell *current = phantom->cursor.needle;
-            int bytes_to_delete = 0;
-            
-            // Move backward to find the start of the character
-            // We need to find the cell that's before the cursor position
-            struct lr_cell *line_head = lr_owner_head(&phantom->buffer->lr, phantom->cursor.owner);
-            struct lr_cell *prev_char_end = NULL;
-            
-            // If we're at position 1, the previous character is at the head
-            if (phantom->cursor.pos == 1) {
-              prev_char_end = line_head;
-            } else {
-              // Otherwise, we need to count positions from the head
-              prev_char_end = line_head;
-              for (size_t i = 1; i < phantom->cursor.pos; i++) {
-                // Check if this is a UTF-8 start byte or ASCII
-                if ((prev_char_end->data & 0xC0) != 0x80) {
-                  // This is a start byte or ASCII, move to next character
-                  while (prev_char_end->next != NULL && 
-                         prev_char_end->next != lr_owner_tail(phantom->cursor.owner)->next &&
-                         (prev_char_end->next->data & 0xC0) == 0x80) {
-                    // Skip continuation bytes
-                    prev_char_end = prev_char_end->next;
-                  }
-                }
-                prev_char_end = prev_char_end->next;
+            size_t i = phantom->cursor.char_pos;
+            LOG_DEBUG("Char start: %p, char end next: %p",
+                      phantom->cursor.char_start, phantom->cursor.char_end);
+            struct lr_cell *needle = NULL;
+            while (needle != phantom->cursor.char_end) {
+              if (needle) {
+                needle = needle->next;
+              } else {
+                needle = phantom->cursor.char_start;
               }
-              
-              // Move back one character
-              if (prev_char_end != line_head) {
-                struct lr_cell *temp = line_head;
-                while (temp->next != prev_char_end) {
-                  temp = temp->next;
-                }
-                prev_char_end = temp;
-              }
-            }
-            
-            // Now prev_char_end points to the last byte of the character before the cursor
-            
-            // Count how many bytes to delete
-            if ((prev_char_end->data & 0x80) == 0) {
-              // ASCII character (1 byte)
-              bytes_to_delete = 1;
-            } else if ((prev_char_end->data & 0xE0) == 0xC0) {
-              // 2-byte UTF-8 character
-              bytes_to_delete = 2;
-            } else if ((prev_char_end->data & 0xF0) == 0xE0) {
-              // 3-byte UTF-8 character
-              bytes_to_delete = 3;
-            } else if ((prev_char_end->data & 0xF8) == 0xF0) {
-              // 4-byte UTF-8 character
-              bytes_to_delete = 4;
-            } else {
-              // This is a continuation byte, we need to find the start byte
-              struct lr_cell *temp = line_head;
-              bytes_to_delete = 1; // Start with 1 for this byte
-              
-              while (temp != prev_char_end) {
-                if ((temp->data & 0xC0) != 0x80 && 
-                    temp->next != NULL && 
-                    temp != prev_char_end) {
-                  // This is a start byte, check if it's part of our character
-                  struct lr_cell *check = temp;
-                  int char_bytes = 0;
-                  
-                  // Determine how many bytes this character has
-                  if ((check->data & 0x80) == 0) {
-                    char_bytes = 1;
-                  } else if ((check->data & 0xE0) == 0xC0) {
-                    char_bytes = 2;
-                  } else if ((check->data & 0xF0) == 0xE0) {
-                    char_bytes = 3;
-                  } else if ((check->data & 0xF8) == 0xF0) {
-                    char_bytes = 4;
-                  }
-                  
-                  // Check if this character includes our prev_char_end
-                  struct lr_cell *end_of_char = temp;
-                  for (int i = 1; i < char_bytes && end_of_char->next != NULL; i++) {
-                    end_of_char = end_of_char->next;
-                  }
-                  
-                  if (end_of_char == prev_char_end) {
-                    // Found our character
-                    bytes_to_delete = char_bytes;
-                    break;
-                  }
-                }
-                temp = temp->next;
-              }
-            }
-            
-            // Now delete the required number of bytes
-            for (int i = 0; i < bytes_to_delete; i++) {
-              size_t pos_to_delete = phantom->cursor.pos - bytes_to_delete + i;
-              result = lr_pull(&phantom->buffer->lr, NULL, phantom->cursor.line_no, pos_to_delete);
+
+              lr_data_t data;
+              result = lr_pull(&phantom->buffer->lr, &data,
+                               phantom->cursor.line_no, i);
+              LOG_DEBUG("Position: %lu.%lu(%zu), Needle: %p, needle->next: %p, "
+                        "data: %d",
+                        phantom->cursor.line_no, phantom->cursor.pos, i, needle,
+                        needle->next, data);
               if (result != LR_SUCCESS) {
                 ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
-                          "Failed to delete character byte in middle of line");
+                          "Failed to delete character in middle of line");
                 return;
               }
             }
-            
+
             phantom->cursor.pos--;
             phantom->cursor.needle = NULL;
           }

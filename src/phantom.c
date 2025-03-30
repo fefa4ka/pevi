@@ -5,10 +5,10 @@
 #include "logger.h"
 #include "memory.h"
 #include "phantom_list.h"
-#include "stdlib.h"            
+#include "stdlib.h"
+#include "text.h"
 #include <stdio.h>
 #include <string.h>
-#include "text.h"
 
 // For tracking the initial click offset during drag operations
 static struct {
@@ -88,170 +88,186 @@ static void phantom_draw_lines(Phantom_t *phantom, const Font *font,
                                float font_size, float spacing, float scale,
                                Camera_t *camera, Plane *plane,
                                InputEvent_t *event) {
-    Vector3 pos = {0, 0, 0};
-    bool symbol_is_hovered = false;
+  Vector3 pos = {0, 0, 0};
+  bool symbol_is_hovered = false;
 
-    // For each line in the phantom.
-    for (size_t line_no = phantom->line_from; line_no <= phantom->line_to; line_no++) {
-        // Retrieve the line container.
-        size_t line_pos = 0;
-        struct lr_cell *line = lr_owner_find(&phantom->buffer->lr, lr_owner(line_no));
-        if (!line) continue;
+  // For each line in the phantom.
+  for (size_t line_no = phantom->line_from; line_no <= phantom->line_to;
+       line_no++) {
+    // Retrieve the line container.
+    size_t line_pos = 0;
+    struct lr_cell *line =
+        lr_owner_find(&phantom->buffer->lr, lr_owner(line_no));
+    if (!line)
+      continue;
 
-        // Get the head and tail of the line.
-        struct lr_cell *cell_head = lr_owner_head(&phantom->buffer->lr, line);
-        struct lr_cell *cell_tail = lr_owner_tail(line);
+    // Get the head and tail of the line.
+    struct lr_cell *cell_head = lr_owner_head(&phantom->buffer->lr, line);
+    struct lr_cell *cell_tail = lr_owner_tail(line);
 
-        // Iterate through the circular list.
-        struct lr_cell *needle = cell_head;
+    // Iterate through the circular list.
+    struct lr_cell *needle = cell_head;
 
-        // Buffer to accumulate multi-byte characters
-        char utf8_buffer[5] = {0};
-        int utf8_pos = 0;
-        int codepoint = 0;
-        struct lr_cell *char_start_needle = needle; // Track where the current character starts
+    // Buffer to accumulate multi-byte characters
+    char utf8_buffer[5] = {0};
+    int utf8_pos = 0;
+    int codepoint = 0;
+    struct lr_cell *char_start_needle =
+        needle; // Track where the current character starts
+    size_t char_pos = 0;
 
-        do {
-            char ch = needle->data;
+    do {
+      char ch = needle->data;
 
-            // Handle tab character directly
-            if (ch == '\t') {
-                pos.x += spacing * 2;
-                line_pos++;
-                needle = needle->next;
-                char_start_needle = needle; // Reset character start
-                continue;
+      // Handle tab character directly
+      if (ch == '\t') {
+        pos.x += spacing * 2;
+        line_pos++;
+        needle = needle->next;
+        char_start_needle = needle; // Reset character start
+        continue;
+      }
+
+      // Accumulate bytes for UTF-8 character
+      utf8_buffer[utf8_pos++] = ch;
+      utf8_buffer[utf8_pos] = 0; // Null terminate
+
+      // Check if we have a complete UTF-8 character
+      int bytes = 0;
+      codepoint = GetCodepoint(utf8_buffer, &bytes);
+
+      // If we have a complete character or reached the buffer limit
+      if (bytes == utf8_pos || utf8_pos >= 4) {
+        /*LOG_DEBUG("Codepoint U+%04X for utf8_buffer: %s (len=%d)", codepoint,
+         * utf8_buffer, bytes);*/
+        line_pos++;
+
+        // Update cursor position if needed
+        if (phantom->cursor.line_no == line_no &&
+            phantom->cursor.pos == line_pos) {
+          phantom->cursor.needle = needle; // Point to start of character
+          phantom->cursor.owner = line;
+          phantom->cursor.char_pos = char_pos;
+
+          phantom->cursor.char_start = char_start_needle;
+          phantom->cursor.char_end = needle;
+	/*LOG_DEBUG("#%lu.%lu(%lu) '%s', Char start: %p, char end next: %p, bytes: %d", line_no, line_pos,char_pos, utf8_buffer, phantom->cursor.char_start, phantom->cursor.char_end,bytes);*/
+        }
+
+        // Draw the glyph for the complete character
+        int glyph_index = GetGlyphIndex(*font, codepoint);
+        // If glyph not found, try to use a fallback character
+        if (glyph_index < 0 || glyph_index >= font->glyphCount) {
+          LOG_DEBUG("Glyph not found for codepoint U+%04X, using fallback",
+                    codepoint);
+          glyph_index =
+              GetGlyphIndex(*font, '?'); // Use question mark as fallback
+          if (glyph_index < 0) {
+            glyph_index = 0; // Last resort fallback
+          }
+        }
+
+        if (glyph_index >= 0 && glyph_index < font->glyphCount) {
+          // Create a glyph structure
+          Glyph_t glyph;
+          glyph.font = (Font *)font;
+          glyph.font_size = font_size;
+          glyph.index = glyph_index;
+
+          // Calculate glyph size
+          float advance = font_glyph_advance_scaled_get(font, codepoint, scale,
+                                                        font->baseSize);
+          glyph.size = (Vector3){advance, 0, scale};
+
+          // Handle hover and interaction
+          if (phantom->is_hovered) {
+            BoundingBox symbol_box = {pos, Vector3Add(pos, glyph.size)};
+            if (object_is_hovered(camera, symbol_box, plane)) {
+              symbol_is_hovered = true;
+
+              // Store the complete character information
+
+              // Handle mouse events
+              if (event) {
+                event->source_type = INPUT_SOURCE_SYMBOL;
+                event->source = phantom;
+
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                  event->mouse = INPUT_MOUSE_CLICK;
+                  LOG_DEBUG("CLICK Unicode symbol at position %zu", line_pos);
+
+                  // Update cursor position to this character
+                  phantom->cursor.line_no = line_no;
+                  phantom->cursor.pos = line_pos;
+                  phantom->cursor.needle = char_start_needle;
+                  phantom->cursor.is_eof = (needle == cell_tail);
+                } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                  event->mouse = INPUT_MOUSE_DRAG;
+                } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                  event->mouse = INPUT_MOUSE_RELEASE;
+                }
+              }
+
+              // Visual hover effect
+              rlDisableDepthTest();
+              DrawCubeWiresV((Vector3){pos.x + glyph.size.x / 2, 0,
+                                       pos.z + glyph.size.z / 2},
+                             glyph.size, RED);
+              rlEnableDepthTest();
             }
+          }
 
-            // Accumulate bytes for UTF-8 character
-            utf8_buffer[utf8_pos++] = ch;
-            utf8_buffer[utf8_pos] = 0;  // Null terminate
+          // Draw cursor if at this position
+          if (phantom->cursor.line_no == line_no &&
+              phantom->cursor.pos == line_pos) {
+            // Draw cursor
+            extern Pevi_t pevi;
+            if (pevi.mode == PEVI_MODE_EDIT) {
+              // Draw a thin vertical line at the cursor position instead of
+              // highlighting the whole symbol
+              Vector3 cursor_size = {0.05f, 0.1f,
+                                     glyph.size.z}; // Thin vertical line
+              float cursor_pos_x = pos.x + glyph.size.x;
+              if (phantom->cursor.pos == 0) {
+                cursor_pos_x = pos.x;
+              }
 
-            // Check if we have a complete UTF-8 character
-            int bytes = 0;
-            codepoint = GetCodepoint(utf8_buffer, &bytes);
-
-            // If we have a complete character or reached the buffer limit
-            if (bytes == utf8_pos || utf8_pos >= 4) {
-	    /*LOG_DEBUG("Codepoint U+%04X for utf8_buffer: %s (len=%d)", codepoint, utf8_buffer, bytes);*/
-                line_pos++;
-
-                // Update cursor position if needed
-                if (phantom->cursor.line_no == line_no && phantom->cursor.pos == line_pos) {
-                    phantom->cursor.needle = char_start_needle; // Point to start of character
-                    phantom->cursor.owner = line;
-                }
-
-                // Draw the glyph for the complete character
-                int glyph_index = GetGlyphIndex(*font, codepoint);
-                // If glyph not found, try to use a fallback character
-                if (glyph_index < 0 || glyph_index >= font->glyphCount) {
-                    LOG_DEBUG("Glyph not found for codepoint U+%04X, using fallback", codepoint);
-                    glyph_index = GetGlyphIndex(*font, '?'); // Use question mark as fallback
-                    if (glyph_index < 0) {
-                        glyph_index = 0; // Last resort fallback
-                    }
-                }
-                    
-                if (glyph_index >= 0 && glyph_index < font->glyphCount) {
-                    // Create a glyph structure
-                    Glyph_t glyph;
-                    glyph.font = (Font*)font;
-                    glyph.font_size = font_size;
-                    glyph.index = glyph_index;
-
-                    // Calculate glyph size
-                    float advance = font_glyph_advance_scaled_get(font, codepoint, scale, font->baseSize);
-                    glyph.size = (Vector3){advance, 0, scale};
-
-                    // Handle hover and interaction
-                    if (phantom->is_hovered) {
-                        BoundingBox symbol_box = {pos, Vector3Add(pos, glyph.size)};
-                        if (object_is_hovered(camera, symbol_box, plane)) {
-                            symbol_is_hovered = true;
-
-                            // Store the complete character information
-                            phantom->hover_char_start = char_start_needle;
-                            phantom->hover_char_end = needle;
-                            phantom->hover_char_pos = line_pos;
-
-                            // Handle mouse events
-                            if (event) {
-                                event->source_type = INPUT_SOURCE_SYMBOL;
-                                event->source = phantom;
-
-                                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                                    event->mouse = INPUT_MOUSE_CLICK;
-                                    LOG_DEBUG("CLICK Unicode symbol at position %zu", line_pos);
-
-                                    // Update cursor position to this character
-                                    phantom->cursor.line_no = line_no;
-                                    phantom->cursor.pos = line_pos;
-                                    phantom->cursor.needle = char_start_needle;
-                                    phantom->cursor.is_eof = (needle == cell_tail);
-                                } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                                    event->mouse = INPUT_MOUSE_DRAG;
-                                } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-                                    event->mouse = INPUT_MOUSE_RELEASE;
-                                }
-                            }
-
-                            // Visual hover effect
-                            rlDisableDepthTest();
-                            DrawCubeWiresV(
-                                (Vector3){pos.x + glyph.size.x / 2, 0, pos.z + glyph.size.z / 2},
-                                glyph.size, RED);
-                            rlEnableDepthTest();
-                        }
-                    }
-
-                    // Draw cursor if at this position
-                    if (phantom->cursor.line_no == line_no && phantom->cursor.pos == line_pos) {
-                        // Draw cursor
-                        extern Pevi_t pevi;
-                        if (pevi.mode == PEVI_MODE_EDIT) {
-                          // Draw a thin vertical line at the cursor position instead of
-                          // highlighting the whole symbol
-                          Vector3 cursor_size = {0.05f, 0.1f,
-                                                 glyph.size.z}; // Thin vertical line
-                          float cursor_pos_x = pos.x + glyph.size.x;
-                          if (phantom->cursor.pos == 0) {
-                            cursor_pos_x = pos.x;
-                          }
-
-                          DrawCubeV((Vector3){cursor_pos_x, 0, pos.z + glyph.size.z / 2},
-                                    cursor_size, RED);
-                        } else {
-                          Vector3 cursor_size = glyph.size;
-                          cursor_size.y = 0;
-                          DrawCubeV((Vector3){pos.x + glyph.size.x / 2, 0,
-                                              pos.z + glyph.size.z / 2},
-                                    cursor_size, RED);
-                        }
-                    }
-
-                    // Draw the symbol
-                    symbol_draw(&glyph, pos, WHITE, false);
-
-                    // Advance position
-                    pos.x += glyph.size.x + (spacing / (float)font->baseSize) * scale;
-                }
-
-                // Reset UTF-8 buffer for next character
-                utf8_pos = 0;
-                memset(utf8_buffer, 0, sizeof(utf8_buffer));
-	  
-                char_start_needle = needle->next; // Next character starts after this one
-				
+              DrawCubeV((Vector3){cursor_pos_x, 0, pos.z + glyph.size.z / 2},
+                        cursor_size, RED);
+            } else {
+              Vector3 cursor_size = glyph.size;
+              cursor_size.y = 0;
+              DrawCubeV((Vector3){pos.x + glyph.size.x / 2, 0,
+                                  pos.z + glyph.size.z / 2},
+                        cursor_size, RED);
             }
+          }
 
-            needle = needle->next;
-        } while (needle != cell_tail->next);
+          // Draw the symbol
+          symbol_draw(&glyph, pos, WHITE, false);
 
-        // End of line: reset x and advance z by line height.
-        pos.x = 0;
-        pos.z += scale + (phantom->font.line_spacing / (float)font->baseSize) * scale;
-    }
+          // Advance position
+          pos.x += glyph.size.x + (spacing / (float)font->baseSize) * scale;
+        }
+
+        // Reset UTF-8 buffer for next character
+        utf8_pos = 0;
+        memset(utf8_buffer, 0, sizeof(utf8_buffer));
+
+        char_start_needle =
+            needle->next; // Next character starts after this one
+      }
+
+
+      char_pos++;
+      needle = needle->next;
+    } while (needle != cell_tail->next);
+
+    // End of line: reset x and advance z by line height.
+    pos.x = 0;
+    pos.z +=
+        scale + (phantom->font.line_spacing / (float)font->baseSize) * scale;
+  }
 }
 
 // Calculate new position for phantom during drag operation
@@ -549,51 +565,53 @@ bool phantom_draw(Phantom_t *phantom, Camera_t *camera, InputEvent_t *event) {
 static phantom_line_measure_t
 phantom_line_measure_get(const Buffer_t *buffer, size_t line_no,
                          const Font *face, float scale, float font_base_size) {
-    phantom_line_measure_t measure = {0, 0.0f};
+  phantom_line_measure_t measure = {0, 0.0f};
 
-    // Get the line container
-    struct lr_cell *line = lr_owner_find(&buffer->lr, lr_owner(line_no));
-    if (!line) return measure;
-
-    // Get the head and tail of the line
-    struct lr_cell *needle = lr_owner_head(&buffer->lr, line);
-    struct lr_cell *tail = lr_owner_tail(line);
-
-    // Buffer for UTF-8 characters
-    char utf8_buffer[5] = {0};
-    int utf8_pos = 0;
-
-    // Loop through the circular list
-    do {
-        // Accumulate bytes for UTF-8 character
-        utf8_buffer[utf8_pos++] = needle->data;
-        utf8_buffer[utf8_pos] = 0;  // Null terminate
-
-        // Check if we have a complete UTF-8 character
-        int bytes = 0;
-        int codepoint = GetCodepoint(utf8_buffer, &bytes);
-
-        // If we have a complete character or reached the buffer limit
-        if (bytes == utf8_pos || utf8_pos >= 4) {
-            measure.char_count++;
-            // Check if the codepoint exists in the font
-            int glyph_index = GetGlyphIndex(*face, codepoint);
-            if (glyph_index >= 0 && glyph_index < face->glyphCount) {
-                measure.width += font_glyph_advance_scaled_get(face, codepoint, scale, font_base_size);
-            } else {
-                // Use a default width for missing glyphs
-                measure.width += (face->baseSize * 0.5f) * scale / font_base_size;
-            }
-
-            // Reset UTF-8 buffer for next character
-            utf8_pos = 0;
-            memset(utf8_buffer, 0, sizeof(utf8_buffer));
-        }
-
-        needle = needle->next;
-    } while (needle != tail->next);
-
+  // Get the line container
+  struct lr_cell *line = lr_owner_find(&buffer->lr, lr_owner(line_no));
+  if (!line)
     return measure;
+
+  // Get the head and tail of the line
+  struct lr_cell *needle = lr_owner_head(&buffer->lr, line);
+  struct lr_cell *tail = lr_owner_tail(line);
+
+  // Buffer for UTF-8 characters
+  char utf8_buffer[5] = {0};
+  int utf8_pos = 0;
+
+  // Loop through the circular list
+  do {
+    // Accumulate bytes for UTF-8 character
+    utf8_buffer[utf8_pos++] = needle->data;
+    utf8_buffer[utf8_pos] = 0; // Null terminate
+
+    // Check if we have a complete UTF-8 character
+    int bytes = 0;
+    int codepoint = GetCodepoint(utf8_buffer, &bytes);
+
+    // If we have a complete character or reached the buffer limit
+    if (bytes == utf8_pos || utf8_pos >= 4) {
+      measure.char_count++;
+      // Check if the codepoint exists in the font
+      int glyph_index = GetGlyphIndex(*face, codepoint);
+      if (glyph_index >= 0 && glyph_index < face->glyphCount) {
+        measure.width += font_glyph_advance_scaled_get(face, codepoint, scale,
+                                                       font_base_size);
+      } else {
+        // Use a default width for missing glyphs
+        measure.width += (face->baseSize * 0.5f) * scale / font_base_size;
+      }
+
+      // Reset UTF-8 buffer for next character
+      utf8_pos = 0;
+      memset(utf8_buffer, 0, sizeof(utf8_buffer));
+    }
+
+    needle = needle->next;
+  } while (needle != tail->next);
+
+  return measure;
 }
 
 // ---------------------------------------------------------------------------
@@ -666,12 +684,6 @@ Phantom_t *phantom_create(void) {
   phantom->cursor = (Cursor_t){0};
   phantom->is_selected = false;
   phantom->is_hovered = false;
-  phantom->hover_char_start = NULL;
-  phantom->hover_char_end = NULL;
-  phantom->hover_char_pos = 0;
-  phantom->hover_char_start = NULL;
-  phantom->hover_char_end = NULL;
-  phantom->hover_char_pos = 0;
 
   return phantom;
 }
