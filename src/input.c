@@ -348,11 +348,13 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
             
             LOG_DEBUG("Deleting %d bytes for UTF-8 character", bytes_to_delete);
             
+            // Store the position for deletion
+            size_t delete_pos = phantom->cursor.char_pos;
+            
             // Delete each byte of the character
             for (int i = 0; i < bytes_to_delete; i++) {
-              size_t pos = phantom->cursor.char_pos;
               lr_data_t data;
-              result = lr_pull(&phantom->buffer->lr, &data, phantom->cursor.line_no, pos);
+              result = lr_pull(&phantom->buffer->lr, &data, phantom->cursor.line_no, delete_pos);
               
               if (result != LR_SUCCESS) {
                 ERROR_SET(ERROR_BUFFER_OPERATION, ERROR_WARNING,
@@ -360,7 +362,7 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                 return;
               }
               
-              LOG_DEBUG("Deleted byte %d of %d at position %zu", i+1, bytes_to_delete, pos);
+              LOG_DEBUG("Deleted byte %d of %d at position %zu", i+1, bytes_to_delete, delete_pos);
             }
 
             // Update cursor position
@@ -374,6 +376,7 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                 struct lr_cell *head = lr_owner_head(&phantom->buffer->lr, owner);
                 struct lr_cell *current = head;
                 size_t pos = 0;
+                size_t char_pos = 0;
                 
                 // Iterate through characters to find the one at cursor position - 1
                 char utf8_buf[5] = {0};
@@ -396,6 +399,7 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                       phantom->cursor.char_start = char_start;
                       phantom->cursor.char_end = current;
                       phantom->cursor.needle = current;
+                      phantom->cursor.char_pos = char_pos;
                       break;
                     }
                     
@@ -403,16 +407,23 @@ static void handle_edit_input(Phantom_t *phantom, InputEvent_t *event) {
                     utf8_pos = 0;
                     memset(utf8_buf, 0, sizeof(utf8_buf));
                     char_start = current->next;
+                    char_pos += bytes; // Track byte position
+                  } else {
+                    char_pos++; // Count each byte
                   }
                   
                   current = current->next;
                 }
+                
+                LOG_DEBUG("After backspace: cursor at pos %zu, char_pos %zu", 
+                          phantom->cursor.pos, phantom->cursor.char_pos);
               }
             } else {
               // At beginning of line
               phantom->cursor.needle = NULL;
               phantom->cursor.char_start = NULL;
               phantom->cursor.char_end = NULL;
+              phantom->cursor.char_pos = 0;
             }
           }
         } else if (phantom->cursor.pos == 0) {
